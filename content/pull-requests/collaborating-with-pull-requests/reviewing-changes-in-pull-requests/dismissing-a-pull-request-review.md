@@ -1,4 +1,4 @@
----
+---not approve it at this time
 title: Dismissing a pull request review
 intro: 'If your repository requires reviews, you can dismiss pull request reviews that are no longer valid or are unable to be approved by the reviewer.'
 redirect_from:
