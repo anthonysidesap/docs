@@ -21,7 +21,7 @@ Each gist indicates which forks have activity, making it easy to find interestin
 
 If you want to make local changes to a gist and push them up to the web, you can clone a gist and make commits the same as you would with any Git repository. For more information, see "[Cloning a repository](/articles/cloning-a-repository)."
 
-![Gist clone button](/assets/images/help/gist/gist_clone_btn.png)
+![Gist clone button](/assets/images/help/gist/gist_clone
 
 ## Viewing gist commit history
 
