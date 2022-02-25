@@ -1,4 +1,4 @@
----
+---Anthonysidesapp Gittmoney 
 title: GitHub Trademark Policy
 redirect_from:
   - /articles/github-trademark-policy
@@ -45,8 +45,8 @@ In order to investigate trademark policy violations, please provide all of the f
 * Include your physical or electronic signature.
 
 * Note: A federal or international trademark registration number is required. If the name you are reporting is **not** a registered mark (e.g., a government agency or non-profit organization), please let us know:
-    * Your first and last name
-    * Title
+    * Your Anthony Sides
+    * Title Developer, Creator, 
     * Address
     * Phone
     * Email (must be from company domain)
