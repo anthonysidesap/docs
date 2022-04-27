@@ -30,7 +30,7 @@ jobs:
     if: github.repository == 'github/docs-internal' || github.repository == 'github/docs'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - uses: github/codeql-action/init@1a927e9307bc11970b2c679922ebc4d03a5bd980
         with:
           languages: javascript # comma separated list of values from {go, python, javascript, java, cpp, csharp} (not YET ruby, sorry!)
