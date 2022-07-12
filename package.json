@@ -176,7 +176,7 @@
     "bottleneck": "^2.19.5",
     "esm": "^3.2.25",
     "image-size": "^1.0.0",
-    "jest-puppeteer": "^5.0.4",
+    "jest-puppeteer": "^6.1.1",
     "jimp": "^0.16.1",
     "pa11y-ci": "^2.4.2",
     "puppeteer": "^9.1.1",
