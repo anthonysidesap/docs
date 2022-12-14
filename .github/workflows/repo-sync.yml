@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
-        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
 
       # Set up npm and run npm ci to run husky to get githooks for LFS
       - name: Setup node

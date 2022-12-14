@@ -55,7 +55,7 @@ jobs:
       - run: git config --global user.email "67483024+docubot@users.noreply.github.com"
 
       - name: Checkout
-        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
         with:
           fetch-depth: 0
           lfs: true
