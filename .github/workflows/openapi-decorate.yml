@@ -31,7 +31,7 @@ jobs:
           add-labels: 'github-openapi-bot'
 
       - name: Checkout repository code
-        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
         with:
           # actions/checkout by default will leave you in a detached head state
           # so we need to specify the PR head ref explicitly since we're making
