@@ -1,1 +1,0 @@
-You can create a security policy to give people instructions for reporting security vulnerabilities in your project. Para obter mais informações, consulte "[Adicionar uma política de segurança ao seu repositório](/code-security/getting-started/adding-a-security-policy-to-your-repository)".
