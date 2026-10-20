@@ -1,13 +1,24 @@
-// Removes single-line HTML comments such as <!-- markdownlint-disable GHD053 -->.
+// HTML closes comments with --> or --!>, and treats <!--> and <!---> as empty comments.
+// Unclosed <!-- text stays because it does not match.
+const HTML_COMMENT = /<!--(?:-?>|[\s\S]*?--!?>)/g
+
+// Removing a comment can form another comment at the join, so repeat until nothing changes.
+// This can remove a little more than a browser would, such as a < right before a comment,
+// but no comment survives.
 export function stripHtmlComments(content: string): string {
-  return content.replace(/<!--.*?-->/g, '').trim()
+  let previous
+  do {
+    previous = content
+    content = content.replace(HTML_COMMENT, '')
+  } while (content !== previous)
+
+  return content.trim()
 }
 
-// Strips HTML comments, then collapses the blank lines their removal leaves behind.
 export function stripHtmlCommentsAndNormalizeWhitespace(content: string): string {
   let cleaned = stripHtmlComments(content)
 
-  // Normalize multiple consecutive blank lines to at most 2 blank lines
+  // Removed comments can leave visually noisy blank-line runs.
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n')
 
   return cleaned.trim()

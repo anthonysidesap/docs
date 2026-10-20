@@ -121,7 +121,7 @@ The operator must use a {% data variables.product.pat_v1 %} for each endpoint:
 
 * The **source operator token** must be created on {% data variables.product.prodname_ghe_server %}.
 * The **target operator token** must be created on {% data variables.enterprise.data_residency_site %}.
-* Both tokens have the scopes specified in [AUTOTITLE](/migrations/elm/migrate-your-repository#2-create-the-tokens-used-by-the-operator-who-will-perform-the-migration).
+* Both tokens have the scopes specified in [AUTOTITLE](/migrations/elm/migrate-your-repository#2-create-operator-tokens-with-enterprise-access).
 * The token owner must be an administrator of the corresponding enterprise. Selecting a scope does not grant the user administrative access.
 * {% data variables.product.pat_v2_caps_plural %} are not supported.
 
@@ -154,7 +154,7 @@ curl --silent --show-error --output /dev/null --dump-header - \
   "$TARGET_API_URL/user"
 ```
 
-Each request should return `200 OK`. The `X-OAuth-Scopes` response header should include `admin:enterprise`.
+Each request should return `200 OK`. The `X-OAuth-Scopes` response header should include `admin:enterprise` and `admin:org`.
 
 If `/user` returns `200 OK` but an {% data variables.product.prodname_elm %} command returns `401 Bad credentials`, the CLI may have a different token or URL stored. Run `gh elm configure` again and carefully associate each token with its corresponding endpoint.
 

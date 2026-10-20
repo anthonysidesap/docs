@@ -38,7 +38,7 @@ To learn about new {% data variables.product.prodname_copilot_short %} features,
 | Assistive | Respond to prompts and provide suggestions, but require human review before changes are made. | Inline suggestions, {% data variables.copilot.copilot_chat_short %}, {% data variables.copilot.copilot_for_prs %}. | All changes require user approval. |
 | Agentic | Autonomously research, plan, and make changes on behalf of users. | {% data variables.copilot.copilot_cloud_agent %}, third-party agents. | Can work autonomously, but with built-in protections. |
 | Customizations | Add context, instructions, tools, skills, and agents to tailor how {% data variables.product.prodname_copilot_short %} responds and works. | Custom instructions, prompt files, {% data variables.copilot.copilot_spaces %}, MCP servers, agent skills, custom agents. | Support and configuration vary by feature and surface. Organization and enterprise policies can control access to some customizations. |
-| External AI agents, models, and tools | External coding agents, models, and tools, including MCP servers from other providers, that work alongside {% data variables.copilot.copilot_cloud_agent %} to complete tasks asynchronously. | {% data variables.product.prodname_anthropic_claude %}, {% data variables.product.prodname_openai_codex %}. | Same as agentic. Review provider documentation and enable via policies. See [AUTOTITLE](/copilot/concepts/agents/about-third-party-coding-agents). |
+| External AI agents, models, and tools | External coding agents, models, and tools, including MCP servers from other providers, that work alongside {% data variables.copilot.copilot_cloud_agent %} to complete tasks asynchronously. | {% data variables.product.prodname_anthropic_claude %}, {% data variables.product.prodname_openai_codex %}. | Same as agentic. Review provider documentation and enable via policies. See [AUTOTITLE](/copilot/concepts/agent-capabilities/about-agents/about-third-party-coding-agents). |
 
 {% endrowheaders %}
 
@@ -60,10 +60,6 @@ You can find information about the models available and upcoming models in the f
 * **Model comparison**: To compare model capabilities side by side, see [AUTOTITLE](/copilot/reference/ai-models/model-comparison).
 * **Changelog**: Model updates are announced in the [{% data variables.product.prodname_copilot_short %} changelog](https://github.blog/changelog/label/copilot/).
 
-#### Default enablement
-
-{% data reusables.copilot.model-autoenablement %}
-
 #### Special categories
 
 {% data variables.product.company_short %} categorizes certain types of model, allowing you to plan for model transitions and set user expectations.
@@ -79,6 +75,12 @@ You can find information about the models available and upcoming models in the f
 {% endrowheaders %}
 
 For more information, see [AUTOTITLE](/copilot/concepts/models/utility-models) and [AUTOTITLE](/copilot/concepts/models/fallback-and-lts-models).
+
+### Default enablement
+
+{% data reusables.copilot.default-availability-policies %}
+
+For more information, see [AUTOTITLE](/copilot/concepts/enterprise/default-availability).
 
 ## Considering different release stages
 

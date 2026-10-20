@@ -17,6 +17,8 @@ type Options = {
   retries?: number
   sleepTime?: number
   verbose?: boolean
+  // Record field to use as the document _id, so a retried bulk overwrites documents instead of duplicating them.
+  idField?: string
 }
 
 export async function createIndex(
@@ -54,12 +56,16 @@ export async function populateIndex(
     () =>
       client.helpers.bulk({
         datasource: records,
-        onDocument: () => ({ index: { _index: indexAlias } }),
-        flushBytes: 4 * 1024 * 1024, // 4MB - Prevents too large of a bulk request which results in a 429 from ES
+        onDocument: (doc) => {
+          const id = options.idField ? doc[options.idField] : undefined
+          return { index: { _index: indexAlias, ...(typeof id === 'string' ? { _id: id } : {}) } }
+        },
+        // Keep bulk requests under 4 MB, because larger requests can return 429 from Elasticsearch.
+        flushBytes: 4 * 1024 * 1024,
         concurrency: 2,
         refreshOnCompletion: true,
         timeout: '5m',
-        // We could use `retries` and `wait` here, but then we don't have as granular control over logging and when to retry
+        // Use retryOnErrorTest instead of bulk retries and wait to control timing and logging.
       }),
     {
       attempts,
@@ -119,8 +125,7 @@ export async function updateAlias(
 
   const indices = await retryOnErrorTest(
     (error) => {
-      // 404 can happen when you're trying to get an index that
-      // doesn't exist. ...yet!
+      // A 404 can mean the index does not exist yet, so retry cat.indices.
       return error instanceof errors.ResponseError && error.meta.statusCode === 404
     },
     () => client.cat.indices({ format: 'json' }),

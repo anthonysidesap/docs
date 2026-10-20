@@ -17,7 +17,7 @@ docsTeamMetrics:
 
 Remote control lets you connect to a running {% data variables.copilot.copilot_cli_short %} session from any browser or from {% data variables.product.prodname_mobile %}. You can view session output, respond to permission requests, and continue working in the session without being at the machine where the session is running.
 
-This article explains how to enable and use remote control. For more conceptual information, see [AUTOTITLE](/copilot/concepts/agents/copilot-cli/about-remote-control).
+This article explains how to enable and use remote control. For more conceptual information, see [AUTOTITLE](/copilot/concepts/agent-capabilities/agent-powered-workflows-and-operations/about-remote-control).
 
 {% data reusables.copilot.copilot-cli.synced-sessions-view-only %}
 
@@ -128,7 +128,7 @@ A {% data variables.copilot.copilot_cli_short %} session is available in {% data
 ### Use a QR code to quickly open a session on your phone
 
 1. In an interactive session, enter the `/remote` slash command to redisplay the remote session details.
-1. Press <kbd>Ctrl</kbd>+<kbd>E</kbd> to toggle on/off display of a QR code.
+1. Press <kbd>Ctrl</kbd>+<kbd>O</kbd> (letter O) to toggle on/off display of a QR code.
 
    > [!NOTE]
    > This keyboard shortcut expands/collapses all details in the session conversation, not just the QR code. It only works if the input field is currently empty.

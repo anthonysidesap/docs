@@ -43,7 +43,7 @@ See [AUTOTITLE](/copilot/reference/ai-models/supported-models#models-with-extend
 
 A small router looks at your prompt and sends it to the model that can **handle it most efficiently**, reserving expensive reasoning models for complex problems. It also avoids models that burn through a token budget quickly.
 
-{% data variables.copilot.copilot_auto_model_selection_short_cap_a %} also **protects your cache**. It only changes models at natural cache boundaries, when a new session starts or after you run `/compact`, never mid-task. To understand more about why this matters, see [4. Preserve the cache](#4-preserve-the-cache).
+{% data variables.copilot.copilot_auto_model_selection_short_cap_a %} also **protects your cache**. It changes models at natural cache boundaries, when a new session starts or after you run `/compact`. As conversations evolve, it will re-route at points where quality improvements outweigh cache loss. To understand more about why this matters, see [4. Preserve the cache](#4-preserve-the-cache).
 
 {% data variables.copilot.copilot_auto_model_selection_short_cap_a %} also routes around degraded or busy models, so you hit fewer rate limits and errors.
 
@@ -67,7 +67,7 @@ Well-structured prompts have three qualities:
 
 This added guidance doesn't meaningfully increase token usage, but it can significantly reduce the number of agent runs needed to reach the right outcome.
 
-For prompt engineering best practices, see [AUTOTITLE](/copilot/concepts/prompting/prompt-engineering).
+For prompt engineering best practices, see [AUTOTITLE](/copilot/concepts/prompting-and-context/prompt-engineering).
 
 ## 3. Keep your context lean
 
@@ -88,7 +88,7 @@ When you need the thread to keep going but it has grown large, run `/compact` in
 
 In addition, you can use `/context` to check current usage at any time.
 
-See [AUTOTITLE](/copilot/concepts/agents/copilot-cli/context-management).
+See [AUTOTITLE](/copilot/concepts/prompting-and-context/context-management).
 
 ### Give {% data variables.product.prodname_copilot_short %} a map of your project
 
@@ -98,7 +98,7 @@ A well-maintained custom instructions file, such as an `AGENTS.md` or `.github/c
 
 Large tool sets (for example, a full MCP server's worth of tools) add to the context on every request. Where it fits your workflow, enable only the toolsets relevant to the task.
 
-See [AUTOTITLE](/copilot/how-tos/provide-context/use-mcp-in-your-ide/configure-toolsets).
+See [AUTOTITLE](/copilot/how-tos/copilot-in-your-ide/customize-copilot/extend-copilot-with-tools-and-context/configure-toolsets).
 
 ## 4. Preserve the cache
 
@@ -148,7 +148,7 @@ In {% data variables.copilot.copilot_cli_short %}, `/chronicle` can generate use
 * Use `/chronicle tips` to analyze your recent session history and surface opportunities to use {% data variables.product.prodname_copilot_short %} more efficiently.
 * Use `/chronicle cost-tips` to understand your token usage patterns and get insights into how to reduce cost.
 
-See [AUTOTITLE](/copilot/concepts/agents/copilot-cli/chronicle#the-chronicle-slash-command).
+See [AUTOTITLE](/copilot/how-tos/copilot-cli/use-copilot-cli/chronicle#using-the-chronicle-slash-command).
 
 ### Feed insights into a `copilot-instructions.md` file
 

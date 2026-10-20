@@ -1,12 +1,7 @@
-// [start-readme]
-//
-// Run this script to check if OpenAPI files can be decorated successfully.
-//
-// [end-readme]
+// Verifies that OpenAPI files can be decorated successfully.
 
 import fs from 'fs'
 import path from 'path'
-import { globSync } from 'glob'
 import { program } from 'commander'
 import { createOperations, processOperations, type SchemaInput } from './utils/get-operations'
 
@@ -24,7 +19,7 @@ program
 
 const filenames: string[] = (program.opts() as ProgramOptions).files
 
-const filesToCheck: string[] = filenames.flatMap((filename: string) => globSync(filename))
+const filesToCheck: string[] = filenames.flatMap((filename: string) => fs.globSync(filename))
 
 if (filesToCheck.length) {
   check(filesToCheck)

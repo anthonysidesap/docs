@@ -1,8 +1,5 @@
-/**
- * Pure parsing/extraction functions used by generate-release-notes.ts.
- * Extracted here so they can be unit-tested without triggering the CLI.
- */
-import fs from 'fs'
+// generate-release-notes.ts uses side-effect-free parsers.
+// Tests can import them without starting the CLI.
 import { load } from 'js-yaml'
 
 export interface NoteEntry {
@@ -11,14 +8,11 @@ export interface NoteEntry {
   sourceUrl: string
 }
 
-/**
- * Looks for ```yaml ... ``` blocks, or falls back to lines starting with "- heading:"
- */
+// Agent output can omit fences, so fall back to the first line starting with "- heading:".
 export function extractYaml(agentOutput: string): string | null {
   const fenced = agentOutput.match(/```ya?ml\s*\n([\s\S]*?)```/)
   if (fenced) return fenced[1].trim()
 
-  // Fall back: look for lines that look like YAML note entries
   const lines = agentOutput.split('\n')
   const yamlLines: string[] = []
   let inYaml = false
@@ -27,7 +21,7 @@ export function extractYaml(agentOutput: string): string | null {
       inYaml = true
     }
     if (inYaml) {
-      // Stop if we hit a non-YAML line (not indented, not a list item, not a comment, not empty)
+      // End fallback YAML when the response resumes prose.
       if (line.trim() && !line.match(/^[\s#-]/) && !line.match(/^\s+\w+:/)) {
         break
       }
@@ -66,37 +60,63 @@ export function parseNoteEntries(yamlStr: string, sourceUrl: string): NoteEntry[
       }
     }
   } catch {
-    // Malformed YAML returns no entries rather than throwing.
+    // Bad agent YAML produces no entries so one issue cannot stop the run.
   }
 
   return entries
 }
 
-/**
- * Parse an existing release notes YAML file and extract NoteEntry[] from it,
- * along with a set of source issue URLs already covered.
- * Returns { entries, coveredUrls } or null if the file doesn't exist.
- */
-export function loadExistingEntries(yamlPath: string): {
-  entries: NoteEntry[]
-  coveredUrls: Set<string>
-} | null {
-  if (!fs.existsSync(yamlPath)) return null
+const SECTION_KEY_PATTERN = /^ {2}([a-z_]+):/
 
-  const content = fs.readFileSync(yamlPath, 'utf8')
-  return loadExistingEntriesFromString(content)
+// Notes in any other section, such as known_issues or errata, are hand-written and have no source issue.
+const SECTION_HEADINGS: Record<string, string> = {
+  changes: 'Changes',
+  closing_down: 'Closing down',
+  retired: 'Retired',
 }
 
-/**
- * Parse release notes YAML content (as a string) and extract NoteEntry[] from it.
- * This is the testable core, with no file I/O.
- *
- * Note: This uses manual line-by-line parsing instead of js-yaml because we need
- * to preserve the `# https://github.com/.../issues/NNN` source URL comments that
- * precede each note. YAML comments are stripped by `load()` and aren't part
- * of the YAML data model, so a standard parser can't track the comment-to-note
- * relationship we rely on for incremental mode and deduplication.
- */
+const GENERATED_SECTIONS = new Set(['features', ...Object.keys(SECTION_HEADINGS)])
+
+export interface PreservedBlocks {
+  header: string
+  knownIssues: string | null
+  otherSections: string[]
+}
+
+// Keep the parts of an existing file that the generator cannot rebuild, so reruns do not drop writer edits.
+export function extractPreservedBlocks(content: string): PreservedBlocks | null {
+  const lines = content.split('\n')
+  const sectionsIndex = lines.findIndex((line) => line.match(/^sections:/))
+  if (sectionsIndex === -1) return null
+
+  const blocks: { key: string; lines: string[] }[] = []
+  for (const line of lines.slice(sectionsIndex + 1)) {
+    const keyMatch = line.match(SECTION_KEY_PATTERN)
+    if (keyMatch) {
+      blocks.push({ key: keyMatch[1], lines: [line] })
+    } else if (blocks.length > 0) {
+      blocks[blocks.length - 1].lines.push(line)
+    }
+  }
+
+  let knownIssues: string | null = null
+  const otherSections: string[] = []
+  for (const block of blocks) {
+    if (GENERATED_SECTIONS.has(block.key)) continue
+    const text = block.lines.join('\n').trimEnd()
+    if (block.key === 'known_issues') knownIssues = text
+    else otherSections.push(text)
+  }
+
+  return {
+    header: lines.slice(0, sectionsIndex).join('\n'),
+    knownIssues,
+    otherSections,
+  }
+}
+
+// Parse release notes YAML manually so source issue URL comments stay attached to notes.
+// js-yaml strips comments, which would break incremental mode and deduplication.
 export function loadExistingEntriesFromString(content: string): {
   entries: NoteEntry[]
   coveredUrls: Set<string>
@@ -109,6 +129,13 @@ export function loadExistingEntriesFromString(content: string): {
   let currentHeading: string | null = null
   let currentNote: string[] = []
   let inNote = false
+  // Hand-written sections can use grouped headings too, so only generated sections may set a heading.
+  let inGeneratedSection = true
+
+  const enterSection = (key: string) => {
+    inGeneratedSection = GENERATED_SECTIONS.has(key)
+    currentHeading = SECTION_HEADINGS[key] ?? null
+  }
 
   const flushNote = () => {
     if (currentSourceUrl && currentHeading && currentNote.length > 0) {
@@ -133,37 +160,25 @@ export function loadExistingEntriesFromString(content: string): {
     inNote = false
   }
 
-  let currentSection: string | null = null
-
   for (const line of lines) {
     const headingMatch = line.match(/^\s+-\s+heading:\s+(.+)/)
     if (headingMatch) {
       flushNote()
-      currentHeading = headingMatch[1].trim()
+      if (inGeneratedSection) currentHeading = headingMatch[1].trim()
       continue
     }
 
-    const sectionMatch = line.match(/^\s+(changes|closing_down|retired|known_issues):/)
+    const sectionMatch = line.match(SECTION_KEY_PATTERN)
     if (sectionMatch) {
       flushNote()
-      currentSection = sectionMatch[1]
-      if (currentSection === 'changes') currentHeading = 'Changes'
-      else if (currentSection === 'closing_down') currentHeading = 'Closing down'
-      else if (currentSection === 'retired') currentHeading = 'Retired'
-      else currentHeading = null // known_issues: skip
-      continue
-    }
-
-    if (line.match(/^\s+features:/)) {
-      flushNote()
-      currentSection = 'features'
+      enterSection(sectionMatch[1])
       continue
     }
 
     const urlMatch = line.match(/^\s*#\s*(https:\/\/github\.com\/github\/releases\/issues\/\d+)/)
     if (urlMatch) {
       flushNote()
-      currentSourceUrl = urlMatch[1]
+      if (inGeneratedSection) currentSourceUrl = urlMatch[1]
       continue
     }
 
@@ -180,25 +195,17 @@ export function loadExistingEntriesFromString(content: string): {
         flushNote()
         const reHeading = line.match(/^\s+-\s+heading:\s+(.+)/)
         if (reHeading) {
-          currentHeading = reHeading[1].trim()
+          if (inGeneratedSection) currentHeading = reHeading[1].trim()
           continue
         }
-        const reSection = line.match(/^\s+(changes|closing_down|retired|known_issues):/)
+        const reSection = line.match(SECTION_KEY_PATTERN)
         if (reSection) {
-          currentSection = reSection[1]
-          if (currentSection === 'changes') currentHeading = 'Changes'
-          else if (currentSection === 'closing_down') currentHeading = 'Closing down'
-          else if (currentSection === 'retired') currentHeading = 'Retired'
-          else currentHeading = null
-          continue
-        }
-        if (line.match(/^\s+features:/)) {
-          currentSection = 'features'
+          enterSection(reSection[1])
           continue
         }
         const reUrl = line.match(/^\s*#\s*(https:\/\/github\.com\/github\/releases\/issues\/\d+)/)
         if (reUrl) {
-          currentSourceUrl = reUrl[1]
+          if (inGeneratedSection) currentSourceUrl = reUrl[1]
           continue
         }
         if (line.match(/^\s+-\s+\|\s*$/)) {
@@ -213,10 +220,6 @@ export function loadExistingEntriesFromString(content: string): {
   return { entries, coveredUrls }
 }
 
-/**
- * Append YAML lines for a list of note entries at a given indentation level.
- * Handles the `# sourceUrl`, `- |`, and multi-line note content pattern.
- */
 export function appendNoteLines(lines: string[], noteEntries: NoteEntry[], indent: string): void {
   for (const entry of noteEntries) {
     lines.push(`${indent}# ${entry.sourceUrl}`)
@@ -233,37 +236,41 @@ export function buildReleaseNotesYaml(
   noteEntries: NoteEntry[],
   releaseCandidate: boolean,
   featureHeadings: string[],
+  preserved?: PreservedBlocks,
 ): string {
   const today = new Date().toISOString().split('T')[0]
   const lines: string[] = []
 
-  lines.push(`date: '${today}'`)
-  lines.push(`release_candidate: ${releaseCandidate}`)
-  lines.push('deprecated: false')
-
-  if (releaseCandidate) {
-    lines.push('intro: |')
-    lines.push(
-      '  > [!NOTE] Release candidate (RC) builds are intended solely for use in a test environment. Do not install an RC in a production environment.',
-    )
-    lines.push('  >')
-    lines.push('  > Do not upgrade to an RC from a supported, earlier version.')
-    lines.push('  >')
-    lines.push(
-      '  > If {% data variables.location.product_location %} is running an RC, you cannot upgrade to the general availability (GA) release. You also cannot upgrade with a hotpatch.',
-    )
-    lines.push('')
-    lines.push(
-      '  For upgrade instructions, see [AUTOTITLE](/admin/upgrading-your-instance/preparing-to-upgrade/overview-of-the-upgrade-process).',
-    )
+  if (preserved) {
+    lines.push(preserved.header)
   } else {
-    lines.push('intro: |')
-    lines.push('')
+    lines.push(`date: '${today}'`)
+    lines.push(`release_candidate: ${releaseCandidate}`)
+    lines.push('deprecated: false')
+
+    if (releaseCandidate) {
+      lines.push('intro: |')
+      lines.push(
+        '  > [!NOTE] Release candidate (RC) builds are intended solely for use in a test environment. Do not install an RC in a production environment.',
+      )
+      lines.push('  >')
+      lines.push('  > Do not upgrade to an RC from a supported, earlier version.')
+      lines.push('  >')
+      lines.push(
+        '  > If {% data variables.location.product_location %} is running an RC, you cannot upgrade to the general availability (GA) release. You also cannot upgrade with a hotpatch.',
+      )
+      lines.push('')
+      lines.push(
+        '  For upgrade instructions, see [AUTOTITLE](/admin/upgrading-your-instance/preparing-to-upgrade/overview-of-the-upgrade-process).',
+      )
+    } else {
+      lines.push('intro: |')
+      lines.push('')
+    }
   }
 
   lines.push('sections:')
 
-  // Features (grouped by heading).
   const featureEntries = noteEntries.filter((e) => featureHeadings.includes(e.heading))
   const otherEntries = noteEntries.filter((e) => !featureHeadings.includes(e.heading))
 
@@ -291,7 +298,6 @@ export function buildReleaseNotesYaml(
     lines.push('    # TODO: Add feature notes')
   }
 
-  // Changes.
   const changeEntries = otherEntries.filter((e) => !['Closing down', 'Retired'].includes(e.heading))
   if (changeEntries.length > 0) {
     lines.push('')
@@ -299,14 +305,18 @@ export function buildReleaseNotesYaml(
     appendNoteLines(lines, changeEntries, '    ')
   }
 
-  // Known issues.
+  const knownIssuesStart = lines.length
   lines.push('')
   lines.push('  known_issues:')
   lines.push('    # TODO: Add known issues from "GHES Release Note Tracking" project')
   lines.push('    - |')
   lines.push('      ...')
+  if (preserved) {
+    // Writers curate known issues by hand, so their block replaces the placeholder.
+    lines.length = knownIssuesStart
+    if (preserved.knownIssues) lines.push('', preserved.knownIssues)
+  }
 
-  // Closing down.
   const closingEntries = otherEntries.filter((e) => e.heading === 'Closing down')
   if (closingEntries.length > 0) {
     lines.push('')
@@ -314,12 +324,16 @@ export function buildReleaseNotesYaml(
     appendNoteLines(lines, closingEntries, '    ')
   }
 
-  // Retired.
   const retiredEntries = otherEntries.filter((e) => e.heading === 'Retired')
   if (retiredEntries.length > 0) {
     lines.push('')
     lines.push('  retired:')
     appendNoteLines(lines, retiredEntries, '    ')
+  }
+
+  for (const section of preserved?.otherSections ?? []) {
+    lines.push('')
+    lines.push(section)
   }
 
   lines.push('')

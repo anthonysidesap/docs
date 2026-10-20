@@ -33,8 +33,7 @@ export const TocLanding = () => {
     <DefaultLayout>
       <UtmPreserver />
       {router.route === '/[versionId]/rest/[category]' && <RestRedirect />}
-      {/* Doesn't matter *where* this is included because it will
-      never render anything. It always just return null. */}
+      {/* ClientSideRedirects renders null, so placement does not affect layout. */}
       <ClientSideRedirects />
 
       <div className="container-xl px-3 px-md-6 my-4">

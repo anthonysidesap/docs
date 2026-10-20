@@ -14,18 +14,35 @@ import { MARKDOWN_SOURCE_MENU_EVENT_GROUP } from '@/events/components/event-grou
 import { sendEvent } from '@/events/components/events'
 import { EventType } from '@/events/types'
 import { useTranslation } from '@/languages/components/useTranslation'
-import cx from 'classnames'
+import cx from 'clsx'
 import styles from './ViewMarkdownButton.module.scss'
+
+async function fetchMarkdown(markdownUrl: string) {
+  const res = await fetch(markdownUrl)
+  if (!res.ok) {
+    throw new Error(`Failed to fetch: ${res.status}`)
+  }
+  return res.text()
+}
+
+async function fetchMarkdownBlob(markdownUrl: string) {
+  return new Blob([await fetchMarkdown(markdownUrl)], { type: 'text/plain' })
+}
 
 interface CopyMarkdownMenuProps {
   currentPath: string
 }
 
+// CopyMarkdownMenu renders separate label and chevron buttons instead of a Primer ButtonGroup.
+// ButtonGroup forces border-radius: 0 and margin-inline-end: -1px, which fight
+// the fused pill styling.
+// The separate elements also keep copy and menu behavior distinct.
 export const CopyMarkdownMenu = ({ currentPath }: CopyMarkdownMenuProps) => {
   const { t } = useTranslation('pages')
 
   const [copied, setCopied] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copyAttemptRef = useRef(0)
 
   useEffect(() => {
     return () => {
@@ -67,47 +84,42 @@ export const CopyMarkdownMenu = ({ currentPath }: CopyMarkdownMenuProps) => {
       clipboard_target: markdownUrl,
       eventGroupKey: MARKDOWN_SOURCE_MENU_EVENT_GROUP,
     })
+    const attempt = ++copyAttemptRef.current
     try {
-      const res = await fetch(markdownUrl)
-      if (!res.ok) {
-        throw new Error(`Failed to fetch: ${res.status}`)
+      if (typeof ClipboardItem !== 'undefined' && typeof navigator.clipboard.write === 'function') {
+        // Safari rejects clipboard writes that start after an await in a click handler, so start the write before the fetch resolves.
+        const blob = fetchMarkdownBlob(markdownUrl)
+        await navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })])
+      } else {
+        await navigator.clipboard.writeText(await fetchMarkdown(markdownUrl))
       }
-      const text = await res.text()
-      await navigator.clipboard.writeText(text)
       announce(t('copied'))
       setCopied(true)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       timeoutRef.current = setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Fallback: open in new tab if fetch or clipboard fails
+      // Safari rejects a pending clipboard write when a newer click starts another, so a superseded attempt skips the fallback.
+      if (attempt !== copyAttemptRef.current) return
+      // If fetch or clipboard fails, open the markdown source in a new tab.
       window.open(markdownUrl, '_blank')
     }
   }, [markdownUrl, t])
 
   return (
-    // Two separate buttons, NOT a Primer ButtonGroup. They read as a single pill
-    // — the chevron is the pill's right-hand end — but ButtonGroup imposes its
-    // own fusing (border-radius: 0 on the inner buttons, margin-inline-end: -1px
-    // on the wrappers), which fights the radii the module sets. They stay
-    // separate elements because they do separate things: the label copies in one
-    // click, the chevron opens the menu.
     <div className={styles.controls}>
       <Button
-        // Brand's Button does not default this, so the label would submit an
-        // enclosing form if this control were ever reused inside one.
+        // Brand Button has no default type; type="button" prevents submission if reused in a form.
         type="button"
         variant="secondary"
         className={cx('text-decoration-none', styles.button, styles.copyButton)}
-        // No icon at rest, per the design. The checkmark is the success state
-        // and reverts on its own after a couple of seconds.
+        // The design hides the icon until the temporary success state.
         leadingVisual={copied ? <CheckIcon aria-hidden="true" /> : undefined}
         onClick={handleCopyClick}
       >
         {t('copy_as_markdown')}
       </Button>
       <ActionMenu>
-        {/* `icon` is load-bearing: ActionMenu.Button renders an icon-only
-            button off it, so it must stay even though the styling is ours. */}
+        {/* ActionMenu.Button requires icon to render an icon-only button. */}
         <ActionMenu.Button
           aria-label={t('more_markdown_options')}
           icon={TriangleDownIcon}
@@ -167,11 +179,8 @@ export const CopyMarkdownMenu = ({ currentPath }: CopyMarkdownMenuProps) => {
   )
 }
 
-// The single placement of the copy-markdown control: below the article lede, at
-// every width and in both article layouts. It used to move into the right-hand
-// "In this article" drawer once that drawer appeared, with a second copy here as
-// the fallback; it now lives in one place, so there is no visibility pairing and
-// no dependence on the sidebar collapse state.
+// CopyMarkdownBelowIntro keeps the control below the article lede at every width,
+// so it does not depend on drawer visibility or sidebar collapse state.
 export const CopyMarkdownBelowIntro = ({ currentPath }: CopyMarkdownMenuProps) => {
   return (
     <div className={styles.belowIntroPlacement}>
