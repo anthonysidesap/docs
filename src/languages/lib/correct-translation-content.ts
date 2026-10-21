@@ -698,6 +698,11 @@ export function correctTranslatedContentStrings(
       'do {% endif %}{% if ideEntry.versionType == "extension" %}{% data variables.copilot.copilot_extension %} IDE.',
       'do {% if ideEntry.versionType == "extension" %}{% data variables.copilot.copilot_extension %}{% endif %} IDE.',
     )
+
+    content = content.replaceAll(
+      '{% ifversion ai-powered-security-detections %} e AI Scan funcionam em solicitações de pull',
+      '{% ifversion ai-powered-security-detections %} e AI Scan{% endif %} funcionam em solicitações de pull',
+    )
   }
 
   if (context.code === 'zh') {
@@ -857,6 +862,21 @@ export function correctTranslatedContentStrings(
     content = content.replaceAll(
       '你可以使用圆括号嵌套筛选器，最多可达五层深度。{% ifversion ghes < 3.18 %} 目前无法在括号中包含`repo`、`org`或`user`限定符。\n\n{% endwebui %}',
       '你可以使用圆括号嵌套筛选器，最多可达五层深度。{% ifversion ghes < 3.18 %} 目前无法在括号中包含`repo`、`org`或`user`限定符。{% endif %}\n\n{% endwebui %}',
+    )
+
+    content = content.replaceAll(
+      '了解 {% endif %}{% data variables.product.prodname_codeql %} 和 AI 扫描{% ifversion ai-powered-security-detections %}如何',
+      '了解 {% data variables.product.prodname_codeql %}{% ifversion ai-powered-security-detections %} 和 AI 扫描{% endif %}如何',
+    )
+
+    content = content.replaceAll(
+      '{% data variables.product.prodname_code_quality_short %}{% endif %}、{% data variables.product.prodname_copilot_short %}{% ifversion code-quality %}和',
+      '{% data variables.product.prodname_copilot_short %}{% ifversion code-quality %}、{% data variables.product.prodname_code_quality_short %}{% endif %}和',
+    )
+
+    content = content.replaceAll(
+      '才需要使用旧代码搜索语法{% else %}。您可以通过在任何组合中使用这些代码搜索限定符来搜索代码并缩小结果范围{% data variables.product.github %}。',
+      '才需要使用旧代码搜索语法{% else %}您可以通过在任何组合中使用这些代码搜索限定符来搜索代码并缩小结果范围{% data variables.product.github %}{% endif %}。',
     )
   }
 
@@ -1494,6 +1514,12 @@ export function correctTranslatedContentStrings(
       '{% data variables.copilot.copilot_autofix_short %} 제안{% endif %} 사용 여부에 따라 수정된 경고 수 {% ifversion code-scanning-autofix %}, 해결되지 않은 상태로 병합된 수',
       '{% ifversion code-scanning-autofix %} {% data variables.copilot.copilot_autofix_short %} 제안 사용 여부에 따라{% endif %} 수정된 경고 수, 해결되지 않은 상태로 병합된 수',
     )
+
+    // The intro is a YAML block scalar, so whitespace after the stray endif varies.
+    content = content.replace(
+      /\{% endif %\}\s*\{% data variables\.product\.prodname_codeql %\} 및 AI Scan\{% ifversion ai-powered-security-detections %\}이/g,
+      '{% data variables.product.prodname_codeql %}{% ifversion ai-powered-security-detections %} 및 AI Scan{% endif %}이',
+    )
   }
 
   if (context.code === 'de') {
@@ -1701,12 +1727,16 @@ export function correctTranslatedContentStrings(
       translatedMatches.length === englishNames.length &&
       translatedMatches.some((m, i) => m[1] !== englishNames[i])
     ) {
+      const aligned = realignTagArgs(
+        translatedMatches.map((m) => m[1]),
+        englishNames,
+      )
       let i = 0
       content = content.replace(
         /(\{%-?\s*octicon\s+")([^"]*)(")/g,
-        (_match, prefix, _name, suffix) => {
-          const englishName = englishNames[i++]
-          return `${prefix}${englishName}${suffix}`
+        (match, prefix, name, suffix) => {
+          const englishName = aligned[i++]
+          return englishName === name ? match : `${prefix}${englishName}${suffix}`
         },
       )
     } else if (englishNames.length > 0) {
@@ -1753,12 +1783,16 @@ export function correctTranslatedContentStrings(
       translatedMatches.length === englishArgs.length &&
       translatedMatches.some((m, i) => m[1].trim() !== englishArgs[i])
     ) {
+      const aligned = realignTagArgs(
+        translatedMatches.map((m) => m[1].trim()),
+        englishArgs,
+      )
       let i = 0
       content = content.replace(
         /(\{%-?\s*indented_data_reference\s+)([^%]*?)(\s*-?%\})/g,
-        (_match, prefix, _args, suffix) => {
-          const englishArg = englishArgs[i++]
-          return `${prefix}${englishArg}${suffix}`
+        (match, prefix, args, suffix) => {
+          const englishArg = aligned[i++]
+          return englishArg === args.trim() ? match : `${prefix}${englishArg}${suffix}`
         },
       )
     } else if (englishArgs.length > 0) {
@@ -1790,12 +1824,16 @@ export function correctTranslatedContentStrings(
       translatedMatches.length === englishArgs.length &&
       translatedMatches.some((m, i) => m[1].trim() !== englishArgs[i])
     ) {
+      const aligned = realignTagArgs(
+        translatedMatches.map((m) => m[1].trim()),
+        englishArgs,
+      )
       let i = 0
       content = content.replace(
         /(\{%-?\s*data\s+)([^%]*?)(\s*-?%\})/g,
-        (_match, prefix, _args, suffix) => {
-          const englishArg = englishArgs[i++]
-          return `${prefix}${englishArg}${suffix}`
+        (match, prefix, args, suffix) => {
+          const englishArg = aligned[i++]
+          return englishArg === args.trim() ? match : `${prefix}${englishArg}${suffix}`
         },
       )
     } else if (englishArgs.length > 0) {
@@ -2101,6 +2139,23 @@ export function correctTranslatedContentStrings(
   }
 
   return content
+}
+
+// Translators may reorder valid tags to fit the sentence, so keep each known argument
+// up to its English count and fill the rest with the English arguments still unused.
+function realignTagArgs(translated: string[], english: string[]): string[] {
+  const remaining = new Map<string, number>()
+  for (const arg of english) remaining.set(arg, (remaining.get(arg) ?? 0) + 1)
+  const take = (arg: string) => {
+    const count = remaining.get(arg) ?? 0
+    if (count === 0) return false
+    remaining.set(arg, count - 1)
+    return true
+  }
+  const kept = translated.map(take)
+  const unused = english.filter(take)
+  let next = 0
+  return translated.map((arg, i) => (kept[i] ? arg : unused[next++]))
 }
 
 // Rejoin markers that the translation pipeline split from their content, which breaks rendering.

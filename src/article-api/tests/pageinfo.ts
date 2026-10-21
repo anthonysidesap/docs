@@ -138,6 +138,21 @@ describe('pageinfo api', () => {
       const meta = JSON.parse(res.body) as PageMetadata
       expect(meta.title).toBe('Only in Enterprise Cloud and Enterprise Server')
     }
+    // Legacy GraphQL redirect destinations carry a kind and #fragment that pages lack.
+    {
+      const res = await get(makeURL('/en/v4/enum/checkruntype'))
+      expect(res.statusCode).toBe(200)
+      const meta = JSON.parse(res.body) as PageMetadata
+      expect(meta.title).toBe('Checks')
+      expect(meta.redirectedFrom).toBe('/en/v4/enum/checkruntype')
+    }
+    {
+      const res = await get(makeURL('/en/v4/mutation'))
+      expect(res.statusCode).toBe(200)
+      const meta = JSON.parse(res.body) as PageMetadata
+      expect(meta.title).toBe('Reference')
+      expect(meta.redirectedFrom).toBe('/en/v4/mutation')
+    }
   })
 
   test('a page that uses non-trivial Liquid to render', async () => {
@@ -185,6 +200,24 @@ describe('pageinfo api', () => {
       expect(res.statusCode).toBe(200)
       const meta = JSON.parse(res.body) as PageMetadata
       expect(meta.title).toMatch('HubGit Enterprise Server Fixture Documentation')
+    }
+  })
+
+  test('language-less canonical pathnames', async () => {
+    {
+      const res = await get(makeURL('/get-started/start-your-journey/hello-world'))
+      expect(res.statusCode).toBe(200)
+      const meta = JSON.parse(res.body) as PageMetadata
+      expect(meta.title).toBe('Hello World')
+      expect(meta.redirectedFrom).toBe('/get-started/start-your-journey/hello-world')
+    }
+    {
+      const res = await get(
+        makeURL('/enterprise-cloud@latest/get-started/start-your-journey/hello-world'),
+      )
+      expect(res.statusCode).toBe(200)
+      const meta = JSON.parse(res.body) as PageMetadata
+      expect(meta.title).toBe('Hello World')
     }
   })
 

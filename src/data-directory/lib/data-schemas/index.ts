@@ -55,6 +55,24 @@ const manualSchemas: DataSchemas = {
   'data/tables/copilot/model-supported-plans.yml': resolveSchemaPath(
     'tables/copilot/model-supported-plans.ts',
   ),
+  'data/tables/copilot/model-release-status.yml': resolveSchemaPath(
+    'tables/copilot/model-release-status.ts',
+  ),
+  'data/tables/copilot/model-comparison.yml': resolveSchemaPath(
+    'tables/copilot/model-comparison.ts',
+  ),
+  'data/tables/copilot/auto-model-selection.yml': resolveSchemaPath(
+    'tables/copilot/auto-model-selection.ts',
+  ),
+  'data/tables/copilot/model-deprecation-history.yml': resolveSchemaPath(
+    'tables/copilot/model-deprecation-history.ts',
+  ),
+  'data/tables/copilot/model-supported-clients.yml': resolveSchemaPath(
+    'tables/copilot/model-supported-clients.ts',
+  ),
+  'data/tables/copilot/models-and-pricing.yml': resolveSchemaPath(
+    'tables/copilot/models-and-pricing.ts',
+  ),
 }
 
 const dataSchemas: DataSchemas = {

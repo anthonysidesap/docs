@@ -232,7 +232,8 @@ export function SearchOverlay({
       if (!searchEventGroupId.current) {
         searchEventGroupId.current = uuidv4()
       }
-      updateAutocompleteResults(urlSearchInputQuery)
+      // Skip the debounce so the cleanup's cleared results never render as "No results found".
+      updateAutocompleteResults(urlSearchInputQuery, { immediate: true })
     } else {
       // Clear shared loading state so the next open does not inherit a spinner.
       setSearchLoading(false)
@@ -318,6 +319,12 @@ export function SearchOverlay({
 
   // AI results replace suggestions, so keep focus in the input after selection.
   const aiSearchOptionOnSelect = (selectedOption: AutocompleteSearchHit) => {
+    // Re-asking the shown question changes no state that refetches, so loading would never clear.
+    if (isAskAIState && selectedOption.term === aiQuery) {
+      setActiveId(null)
+      inputRef.current?.focus()
+      return
+    }
     if (selectedOption.term) {
       askAIEventGroupId.current = uuidv4()
       // Send the event here because cached results skip executeAISearch.
@@ -405,6 +412,12 @@ export function SearchOverlay({
       // With nothing selected, Enter asks Copilot. Full results are the last arrow stop.
       if (activeIndex === -1) {
         if (!urlSearchInputQuery.trim()) {
+          return
+        }
+        // Copilot stays off after an error, so Enter runs the docs search the banner offers.
+        if (aiSearchError) {
+          sendKeyboardEvent(event.key, 'view-all', searchEventGroupId, SEARCH_OVERLAY_EVENT_GROUP)
+          performGeneralSearch()
           return
         }
         sendKeyboardEvent(event.key, AI_SEARCH_CONTEXT, askAIEventGroupId, ASK_AI_EVENT_GROUP)
