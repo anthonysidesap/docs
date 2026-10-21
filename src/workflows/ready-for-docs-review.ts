@@ -13,7 +13,7 @@ import {
   type ItemData,
 } from './projects'
 
-// Whether copilot-swe-agent authored the PR, and its first other assignee.
+// Copilot PRs use their first non-Copilot assignee as the human contributor.
 function getCopilotAuthorInfo(data: ItemData): {
   isCopilotAuthor: boolean
   copilotAssignee: string
@@ -135,16 +135,15 @@ async function run() {
   const size = getSize(data)
   const sizeType = findSingleSelectID(size, 'Size', data)
 
-  // Check if the author is a bot account (e.g. dependabot[bot], github-actions[bot]).
-  // GitHub bot logins end with '[bot]' and cannot be resolved as regular GitHub users,
-  // so we skip any user-specific GraphQL queries for them.
+  // Bot logins such as dependabot[bot] cannot be resolved as regular GitHub users.
   const isBotAuthor = (process.env.AUTHOR_LOGIN || '').endsWith('[bot]')
 
-  // If this is the OS repo, determine if this is a first time contributor
-  // If yes, set the author to 'first time contributor' instead of to the author login
-  // Bot accounts (e.g. dependabot[bot]) are not resolvable as GitHub users, so skip this check.
+  // The REST login for Copilot-authored PRs is "Copilot", which is not a User either.
+  const { isCopilotAuthor, copilotAssignee } = getCopilotAuthorInfo(data)
+
+  // github/docs PRs from new human contributors use first time contributor instead of the login.
   let firstTimeContributor
-  if (!isBotAuthor && process.env.REPO === 'github/docs') {
+  if (!isBotAuthor && !isCopilotAuthor && process.env.REPO === 'github/docs') {
     const contributorData: Record<string, unknown> = await graphql(
       `
         query ($author: String!) {
@@ -208,8 +207,6 @@ async function run() {
   }
   const turnaround = process.env.REPO === 'github/docs' ? 3 : 2
 
-  const { isCopilotAuthor, copilotAssignee } = getCopilotAuthorInfo(data)
-
   const authorFieldValue = getAuthorFieldValue(
     isCopilotAuthor,
     copilotAssignee,
@@ -225,7 +222,7 @@ async function run() {
 
   let contributorType
   if (isCopilotAuthor || isBotAuthor) {
-    // Treat Copilot and bot-authored PRs (e.g. dependabot[bot]) as Docs team
+    // Treat Copilot and bot-authored PRs as Docs team.
     contributorType = docsMemberTypeID
   } else if (await isDocsTeamMember(process.env.AUTHOR_LOGIN || '')) {
     contributorType = docsMemberTypeID
@@ -234,7 +231,7 @@ async function run() {
   } else if (process.env.REPO === 'github/docs') {
     contributorType = osContributorTypeID
   } else {
-    // use hubber as the fallback so that the PR doesn't get lost on the board
+    // Fall back to hubber so the PR stays visible on the board.
     contributorType = hubberTypeID
   }
 

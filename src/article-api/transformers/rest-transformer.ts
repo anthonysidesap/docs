@@ -6,6 +6,14 @@ import { engine } from '@/content-render/liquid/engine'
 import { apiTransformerTags } from '@/article-api/liquid-renderers'
 import { loadTemplate } from '@/article-api/lib/load-template'
 import { summarizeSchema } from '@/article-api/lib/summarize-schema'
+import {
+  getCurlBodyArguments,
+  needsExplicitContentTypeHeader,
+} from '@/rest/lib/curl-body-arguments'
+import {
+  getAcceptHeader,
+  getRequiredQueryParamsPath,
+} from '@/rest/components/get-rest-code-samples'
 import matter from '@gr2m/gray-matter'
 import { fastTextOnly } from '@/content-render/unified/text-only'
 import GithubSlugger from 'github-slugger'
@@ -23,7 +31,9 @@ type PreparedCodeExample = {
     description: string
     url: string
     acceptHeader?: string
-    bodyParameters: string | null
+    contentType?: string
+    needsContentTypeHeader: boolean
+    bodyParameters: string[]
   }
   response: {
     statusCode?: string
@@ -36,6 +46,7 @@ type PreparedOperation = Omit<Operation, 'statusCodes' | 'codeExamples'> & {
   hasParameters: boolean
   showHeaders: boolean
   needsContentTypeHeader: boolean
+  basicAuth: boolean
   statusCodes?: Array<{ httpStatusCode: string; description?: string }>
   codeExamples: PreparedCodeExample[]
 }
@@ -215,6 +226,12 @@ export class RestTransformer implements PageTransformer {
           }
         }
 
+        const requiredQueryParams = getRequiredQueryParamsPath(operation, example)
+        if (requiredQueryParams) {
+          // Quote the URL so shells don't treat ? or & specially.
+          url = `"${url}?${requiredQueryParams}"`
+        }
+
         const responseSchema = (
           example.response as { schema?: Parameters<typeof summarizeSchema>[0] } | undefined
         )?.schema
@@ -224,10 +241,14 @@ export class RestTransformer implements PageTransformer {
               ? fastTextOnly(example.request.description)
               : '',
             url,
-            acceptHeader: example.request?.acceptHeader,
-            bodyParameters: example.request?.bodyParameters
-              ? JSON.stringify(example.request.bodyParameters, null, 2)
-              : null,
+            acceptHeader: getAcceptHeader(example),
+            contentType: example.request?.contentType,
+            needsContentTypeHeader: needsExplicitContentTypeHeader(example.request?.contentType),
+            bodyParameters: getCurlBodyArguments(
+              example.request?.bodyParameters,
+              example.request?.contentType,
+              { jsonIndent: 2 },
+            ),
           },
           response: {
             statusCode: example.response?.statusCode,
@@ -242,6 +263,7 @@ export class RestTransformer implements PageTransformer {
       hasParameters,
       showHeaders,
       needsContentTypeHeader,
+      basicAuth: Boolean(operation.progAccess?.basicAuth),
       statusCodes,
       codeExamples,
     }

@@ -1,6 +1,4 @@
-// Analyzes posted survey comments in a CSV file.
-// The CSV is expected to come from the Azure Data Explorer, after querying the
-// `docs_v0_survey_event` table.
+// Analyze posted survey comments in CSVs exported from Azure Data Explorer's docs_v0_survey_event.
 
 import fs from 'node:fs'
 import util from 'node:util'
@@ -46,7 +44,7 @@ type Record = {
 async function analyzeFile(csvFile: string, options: Options) {
   const parser = fs.createReadStream(csvFile).pipe(
     parse({
-      // Needed when parsing CSVs from the Azure Data Explorer
+      // Azure Data Explorer CSV exports include a byte-order mark.
       bom: true,
     }),
   )
@@ -73,7 +71,7 @@ async function analyzeFile(csvFile: string, options: Options) {
     let rating = 1.0
     let first = true
     for (const { reduction, name, validator } of SIGNAL_RATINGS) {
-      const hit = validator(record.survey_comment, language)
+      const hit = await validator(record.survey_comment, language)
       if (hit) {
         rating -= reduction
         if (first) {

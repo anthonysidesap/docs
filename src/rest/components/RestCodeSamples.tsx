@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react'
-import { FormControl, IconButton, Select, SegmentedControl } from '@primer/react'
+import { IconButton, SegmentedControl } from '@primer/react'
+import { FormControl, Select } from '@primer/react-brand'
 import { CheckIcon, CopyIcon, InfoIcon } from '@primer/octicons-react'
 import { announce } from '@primer/live-region-element'
 import Cookies from '@/frame/components/lib/cookies'
 import cx from 'clsx'
 
-import { generateExampleOptions } from '@/rest/lib/code-example-utils'
+import { generateExampleOptions, toGhesApiUrls } from '@/rest/lib/code-example-utils'
 
 import { useTranslation } from '@/languages/components/useTranslation'
 import useClipboard from '@/rest/components/useClipboard'
@@ -114,10 +115,8 @@ export function RestCodeSamples({ operation, slug, heading }: Props) {
   let displayedExampleSchema = JSON.stringify(displayedExample.response.schema, null, 2)
 
   if (isEnterpriseServer) {
-    displayedExampleResponse =
-      displayedExampleResponse && displayedExampleResponse.replaceAll('api.github.com', 'HOSTNAME')
-    displayedExampleSchema =
-      displayedExampleSchema && displayedExampleSchema.replaceAll('api.github.com', 'HOSTNAME')
+    displayedExampleResponse = displayedExampleResponse && toGhesApiUrls(displayedExampleResponse)
+    displayedExampleSchema = displayedExampleSchema && toGhesApiUrls(displayedExampleSchema)
   }
 
   return (
@@ -137,7 +136,7 @@ export function RestCodeSamples({ operation, slug, heading }: Props) {
       </h4>
       {!isSingleExample && (
         <div className="pb-5 pt-2">
-          <FormControl id="example-type-picker">
+          <FormControl>
             <FormControl.Label visuallyHidden>Select the example type</FormControl.Label>
             <Select onChange={handleExampleSelection}>
               {exampleSelectOptions.map((option) => (

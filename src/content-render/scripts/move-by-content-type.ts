@@ -262,42 +262,19 @@ contentType: ${placeholderContentType}
       }
     }
 
-    if (newPlaceholders.length > 0) {
-      console.log(chalk.white('\nGenerating intros for placeholder files...\n'))
-
-      for (const placeholderPath of newPlaceholders) {
-        try {
-          const fileContent = await fs.readFile(placeholderPath, 'utf-8')
-          const { data } = readFrontmatter(fileContent)
-
-          if (data?.intro) continue
-
-          const relativePath = path.relative(process.cwd(), placeholderPath)
-          console.log(chalk.gray(`Generating intro for ${relativePath}...`))
-
-          execFileSync(
-            'npm',
-            ['run', 'ai-tools', '--', '--prompt', 'intro', '--files', relativePath, '--write'],
-            {
-              cwd: process.cwd(),
-              stdio: 'inherit',
-            },
-          )
-
-          console.log(chalk.green(`✓ Generated intro for ${relativePath}`))
-        } catch (error) {
-          if (error instanceof Error) {
-            console.error(
-              chalk.yellow(
-                `⚠ Could not generate intro for ${placeholderPath}: ${error.message}\n${error.stack}`,
-              ),
-            )
-          } else {
-            console.error(
-              chalk.yellow(`⚠ Could not generate intro for ${placeholderPath}: ${String(error)}`),
-            )
-          }
-        }
+    // This step used to shell out to `npm run ai-tools`. Those scripts now live
+    // in github/technical-content at .github/scripts/ai-tools, so the intros are
+    // generated as a separate step and the paths are reported here.
+    const placeholdersNeedingIntros: string[] = []
+    for (const placeholderPath of newPlaceholders) {
+      try {
+        const fileContent = await fs.readFile(placeholderPath, 'utf-8')
+        const { data } = readFrontmatter(fileContent)
+        if (data?.intro) continue
+        placeholdersNeedingIntros.push(path.relative(process.cwd(), placeholderPath))
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        console.error(chalk.yellow(`⚠ Could not read ${placeholderPath}: ${detail}`))
       }
     }
 
@@ -428,6 +405,7 @@ contentType: ${placeholderContentType}
 
     for (const productDir of productDirs) {
       const productName = path.basename(productDir)
+      const retainedChildren = new Set<string>()
 
       try {
         const entries = await fs.readdir(productDir, { withFileTypes: true })
@@ -435,12 +413,44 @@ contentType: ${placeholderContentType}
         for (const entry of entries) {
           if (entry.isDirectory() && !validContentTypeDirs.has(entry.name)) {
             const oldDirPath = path.join(productDir, entry.name)
+            const relativeOldDirPath = path.relative(process.cwd(), oldDirPath)
 
             try {
+              // Unmoved articles and typed indexes would be lost; untyped category indexes go with the directory.
+              const remaining: string[] = []
+              for (const file of walkFiles(oldDirPath, ['.md'], { includeEarlyAccess: true })) {
+                if (path.basename(file) !== 'index.md') {
+                  remaining.push(file)
+                  continue
+                }
+                const { data } = readFrontmatter(await fs.readFile(file, 'utf-8'))
+                if (!data || data.contentType) remaining.push(file)
+              }
+              if (remaining.length > 0) {
+                const examples = remaining
+                  .slice(0, 3)
+                  .map((file) => path.relative(process.cwd(), file))
+                  .join(', ')
+                console.log(
+                  chalk.yellow(
+                    `⚠ Not deleting ${relativeOldDirPath}: ${remaining.length} unmoved articles remain (${examples})`,
+                  ),
+                )
+                skipped.push({
+                  file: relativeOldDirPath,
+                  reason: `Not deleted: ${remaining.length} unmoved articles remain`,
+                })
+                try {
+                  await fs.access(path.join(oldDirPath, 'index.md'))
+                  retainedChildren.add(`/${entry.name}`)
+                } catch {
+                  // A category without an index cannot be listed as a child.
+                }
+                continue
+              }
+
               await fs.rm(oldDirPath, { recursive: true, force: true })
-              console.log(
-                chalk.gray(`✓ Deleted old directory: ${path.relative(process.cwd(), oldDirPath)}`),
-              )
+              console.log(chalk.gray(`✓ Deleted old directory: ${relativeOldDirPath}`))
 
               if (!deletedByProduct.has(productName)) deletedByProduct.set(productName, [])
               deletedByProduct.get(productName)!.push(`/${productName}/${entry.name}`)
@@ -469,7 +479,11 @@ contentType: ${placeholderContentType}
           }
 
           if (newChildren.length > 0) {
-            data.children = newChildren
+            // Retained categories stay reachable in the tree until their remaining articles move.
+            const keptChildren = Array.isArray(data.children)
+              ? data.children.filter((child: string) => retainedChildren.has(child))
+              : []
+            data.children = [...newChildren, ...keptChildren]
             updated = true
           }
 
@@ -568,11 +582,23 @@ contentType: ${placeholderContentType}
 
     if (newPlaceholders.length > 0) {
       console.log(
-        chalk.cyan(
-          `\nNote: ${newPlaceholders.length} placeholder index.md files were created with`,
+        chalk.cyan(`\nNote: ${newPlaceholders.length} placeholder index.md files were created.`),
+      )
+    }
+
+    if (placeholdersNeedingIntros.length > 0) {
+      console.log(
+        chalk.cyan(`\n${placeholdersNeedingIntros.length} placeholder files still need an intro.`),
+      )
+      console.log(chalk.cyan('Generate them from a github/technical-content checkout:'))
+      console.log(
+        chalk.gray(
+          `\n  cd .github/scripts && npm run ai-tools -- --prompt intro --write \\\n` +
+            `    --docs-dir ${process.cwd()} \\\n` +
+            `    --files ${placeholdersNeedingIntros.join(' ')}\n`,
         ),
       )
-      console.log(chalk.cyan(`AI-generated intros. Please review before committing.`))
+      console.log(chalk.cyan('Review the generated intros before committing.'))
     }
 
     console.log(chalk.blue('='.repeat(60)))

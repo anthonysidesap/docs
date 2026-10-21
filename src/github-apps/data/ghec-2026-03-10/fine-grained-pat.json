@@ -2597,6 +2597,18 @@
       "requestPath": "/orgs/{org}/copilot/metrics/reports/users-28-day/latest"
     },
     {
+      "slug": "get-model-policies-for-an-organization",
+      "subcategory": "copilot-model-policy-management",
+      "verb": "get",
+      "requestPath": "/orgs/{org}/copilot/model-policies"
+    },
+    {
+      "slug": "update-model-policies-for-an-organization",
+      "subcategory": "copilot-model-policy-management",
+      "verb": "patch",
+      "requestPath": "/orgs/{org}/copilot/model-policies"
+    },
+    {
       "slug": "get-copilot-seat-assignment-details-for-a-user",
       "subcategory": "copilot-user-management",
       "verb": "get",
@@ -2907,6 +2919,12 @@
       "subcategory": "dependency-submission",
       "verb": "post",
       "requestPath": "/repos/{owner}/{repo}/dependency-graph/snapshots"
+    },
+    {
+      "slug": "check-license-compliance-for-packages",
+      "subcategory": "license-compliance",
+      "verb": "post",
+      "requestPath": "/repos/{owner}/{repo}/license-compliance/package-checks"
     }
   ],
   "deploy-keys": [
@@ -4347,6 +4365,18 @@
       "requestPath": "/orgs/{org}/outside_collaborators/{username}"
     },
     {
+      "slug": "get-registered-app-installations-for-external-custom-properties",
+      "subcategory": "custom-properties",
+      "verb": "get",
+      "requestPath": "/orgs/{org}/properties/installations"
+    },
+    {
+      "slug": "register-an-app-installation-for-external-custom-properties",
+      "subcategory": "custom-properties",
+      "verb": "post",
+      "requestPath": "/orgs/{org}/properties/installations"
+    },
+    {
       "slug": "get-all-custom-properties-for-an-organization",
       "subcategory": "custom-properties",
       "verb": "get",
@@ -4893,6 +4923,12 @@
       "subcategory": "review-requests",
       "verb": "delete",
       "requestPath": "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"
+    },
+    {
+      "slug": "rerequest-reviewers-for-a-pull-request",
+      "subcategory": "review-requests",
+      "verb": "post",
+      "requestPath": "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers/rerequest"
     },
     {
       "slug": "list-reviews-for-a-pull-request",

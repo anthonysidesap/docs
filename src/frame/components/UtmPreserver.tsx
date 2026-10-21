@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 
+import { shouldPreserveUtm } from '@/frame/components/lib/utm'
+
 export const UtmPreserver = () => {
   const router = useRouter()
 
@@ -20,18 +22,6 @@ export const UtmPreserver = () => {
 
     const utmParams = getUtmParams()
     if (utmParams.toString() === '') return
-
-    const shouldPreserveUtm = (url: string): boolean => {
-      const lowercaseUrl = url.toLowerCase()
-
-      // Preserve UTM for any external github.com links (including subdomains like blog.github.com)
-      // but NOT for docs.github.com (which are internal links anyway)
-      const hasProtocol = lowercaseUrl.startsWith('https://') || lowercaseUrl.startsWith('http://')
-      const isGithubCom = lowercaseUrl.includes('github.com')
-      const isDocsGithubCom = lowercaseUrl.includes('docs.github.com')
-
-      return hasProtocol && isGithubCom && !isDocsGithubCom
-    }
 
     const addUtmParamsToUrl = (url: string, params: URLSearchParams): string => {
       try {
@@ -68,12 +58,12 @@ export const UtmPreserver = () => {
 
     applyUtmToLinks()
 
-    // Also handle clicks for any dynamically added links
+    // Delegated clicks cover links added after the first pass.
     document.addEventListener('click', handleLinkClick, true)
 
-    // Re-apply when the route changes (for single-page navigation)
+    // Route changes need another pass after Next updates the DOM.
     const handleRouteChange = () => {
-      // Small delay to ensure DOM has updated
+      // Wait for route rendering before querying links.
       setTimeout(applyUtmToLinks, 100)
     }
 

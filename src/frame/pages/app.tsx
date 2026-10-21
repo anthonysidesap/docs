@@ -74,13 +74,15 @@ const MyApp = ({ Component, pageProps, languagesContext, stagingName }: MyAppPro
   }, [])
 
   useEffect(() => {
+    let cleanup: (() => void) | undefined
     if (pageProps.mainContext) {
       try {
-        initializeForwardFeatureUrlParam(router, pageProps.mainContext.currentVersion)
+        cleanup = initializeForwardFeatureUrlParam(router, pageProps.mainContext.currentVersion)
       } catch (e) {
         console.error('Error initializing feature param forwarding:', e)
       }
     }
+    return cleanup
   }, [router, router.query, pageProps.mainContext])
 
   return (
@@ -148,7 +150,7 @@ MyApp.getInitialProps = async (appContext: AppContext) => {
       }
     }
   }
-  const headerValue = req.headers['x-ong-external-url']
+  const headerValue = req?.headers['x-ong-external-url']
   const stagingName = (typeof headerValue === 'string' ? headerValue : headerValue?.[0])?.match(
     /staging-(\w+)\./,
   )?.[1]

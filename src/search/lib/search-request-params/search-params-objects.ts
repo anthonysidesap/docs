@@ -1,14 +1,12 @@
-// A request to a /search endpoint carries query parameters, e.g.
-// ?query=foo&version=free-pro-team, which have to be validated and parsed. This
-// file configures which parameters to expect for each type of search request
-// (general search vs autocomplete search) and how to validate them.
+// Search request schemas define parameters, defaults, casts, and validation
+// rules for general search and AI autocomplete endpoints.
+// Example request query strings include ?query=foo&version=free-pro-team.
 import languages from '@/languages/lib/languages-server'
 import { allIndexVersionKeys, versionToIndexVersionMap } from '@/search/lib/elasticsearch-versions'
 import { SearchTypes } from '@/search/types'
 
 import type { SearchRequestQueryParams } from '@/search/lib/search-request-params/types'
 
-// Entry to this file, returns the query parameters to expect based on the type of search request
 export function getSearchRequestParamsObject(type: SearchTypes): SearchRequestQueryParams[] {
   if (type === 'aiSearchAutocomplete') {
     return AI_SEARCH_AUTOCOMPLETE_PARAMS_OBJ
@@ -26,9 +24,7 @@ const DEFAULT_SORT = POSSIBLE_SORTS[0]
 const MAX_PAGE = 10
 const V1_AGGREGATES = ['toplevel'] as const
 export const POSSIBLE_HIGHLIGHT_FIELDS = ['title', 'content'] as const
-// This needs to match what we *use* in the `<SearchResults>` component.
-// For example, if we don't display "headings" we shouldn't request
-// highlights for it either.
+// Keep this list in sync with SearchResults; only request highlights the UI displays.
 export const DEFAULT_HIGHLIGHT_FIELDS: readonly string[] = ['title', 'content']
 
 export const V1_ADDITIONAL_INCLUDES = ['intro', 'headings', 'toplevel'] as const
@@ -41,7 +37,7 @@ const SHARED_PARAMS_OBJ: SearchRequestQueryParams[] = [
     key: 'version',
     default_: 'free-pro-team',
     validate: (version) => {
-      if (!versionToIndexVersionMap[version as string]) {
+      if (!Object.hasOwn(versionToIndexVersionMap, version as string)) {
         throw new ValidationError(`'${version}' not in ${allIndexVersionKeys.join(', ')}`)
       }
       return true
@@ -52,7 +48,7 @@ const SHARED_PARAMS_OBJ: SearchRequestQueryParams[] = [
 const GENERAL_SEARCH_PARAMS_OBJ: SearchRequestQueryParams[] = [
   ...SHARED_PARAMS_OBJ,
   { key: 'query' },
-  { key: 'language', default_: 'en', validate: (v) => (v as string) in languages },
+  { key: 'language', default_: 'en', validate: (v) => Object.hasOwn(languages, v as string) },
   {
     key: 'size',
     default_: DEFAULT_SIZE,
@@ -130,7 +126,7 @@ const SHARED_AUTOCOMPLETE_PARAMS_OBJ: SearchRequestQueryParams[] = [
     key: 'version',
     default_: 'free-pro-team',
     validate: (version) => {
-      if (!versionToIndexVersionMap[version as string]) {
+      if (!Object.hasOwn(versionToIndexVersionMap, version as string)) {
         throw new ValidationError(`'${version}' not in ${allIndexVersionKeys.join(', ')}`)
       }
       return true

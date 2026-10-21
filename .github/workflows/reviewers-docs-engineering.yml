@@ -16,13 +16,14 @@ on:
       - '**.tsx'
       - '**.scss'
       - 'src/**'
-      - '!src/**.json' # Docs Engineering does not triage automated pipeline data PRs.
-      - '!src/**.yml' # Docs Engineering does not triage automated pipeline data PRs.
-      - '!src/**.sha' # Docs Engineering does not triage automated pipeline data PRs.
+      - '!src/**.json' # Skip automated pipeline data PRs.
+      - '!src/**.yml' # Skip automated pipeline data PRs.
+      - '!src/**.sha' # Skip automated pipeline data PRs.
       - '.github/**'
       - 'config/**'
       - '.devcontainer/**'
       - '**Dockerfile'
+      - '.dockerignore'
       - 'package*.json'
       - .github/workflows/reviewers-docs-engineering.yml
 
@@ -48,31 +49,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      # Detect PRs that only changed package-lock.json (no engineering source files).
-      # These are usually cross-platform `npm install` churn from contributors
-      # editing content. We comment with reset instructions instead of adding
-      # them to the engineering review board.
-      #
-      # Dependabot is exempt. Its security updates for transitive dependencies
-      # change only the lockfile, because the dependency is not in package.json.
-      # Those PRs are intentional, so the reset instructions are wrong and
-      # keeping them off the board leaves them without engineering triage.
+      # Detect PRs that only change package-lock.json. Contributors often create
+      # cross-platform npm install churn while editing content.
+      # Comment with reset instructions instead of adding them to the engineering review board.
+      # Dependabot and docs-bot PRs can change only the lockfile on purpose, for example
+      # to fix a transitive dependency. Skip the check for them so they still get engineering triage.
       - name: Detect lockfile-only churn
         id: detect
         env:
           GH_TOKEN: ${{ secrets.DOCS_BOT_PAT_BASE }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+          REPO: ${{ github.repository }}
+          EVENT_ACTION: ${{ github.event.action }}
         run: |
-          if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
-            echo "Author is Dependabot; skipping lockfile churn detection."
+          if [ "$PR_AUTHOR" = "dependabot[bot]" ] || [ "$PR_AUTHOR" = "docs-bot" ]; then
+            echo "Author is $PR_AUTHOR; skipping lockfile churn detection."
             echo "lockfile_only=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          changed=$(gh pr diff "$PR" --name-only)
+          # Removing the lockfile-churn-only label and reopening the PR is the documented override.
+          if [ "$EVENT_ACTION" = "reopened" ]; then
+            echo "PR reopened; skipping lockfile churn detection."
+            echo "lockfile_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # `gh pr diff` fails above 300 files, and `gh pr view --json files` stops at 100.
+          changed=$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/files" --jq '.[].filename')
           echo "Changed files:"
           echo "$changed"
+          # The files API returns at most 3,000 files. If the list is incomplete, request review anyway.
+          if [ "$(echo "$changed" | grep -c .)" -lt "$CHANGED_FILES" ]; then
+            echo "Listed fewer files than the PR changes; skipping lockfile churn detection."
+            echo "lockfile_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           lockfile=$(echo "$changed" | grep -c '^package-lock\.json$' || true)
-          other_eng=$(echo "$changed" | grep -cE '(\.tsx?$|\.scss$|^src/|^package\.json$|^\.github/|^config/|^\.devcontainer/|Dockerfile)' || true)
+          other_eng=$(echo "$changed" | grep -cE '(\.tsx?$|\.scss$|^src/|^package\.json$|^\.github/|^config/|^\.devcontainer/|Dockerfile|^\.dockerignore$)' || true)
           if [ "$lockfile" -gt 0 ] && [ "$other_eng" -eq 0 ]; then
             echo "lockfile_only=true" >> "$GITHUB_OUTPUT"
           else
@@ -95,7 +109,7 @@ jobs:
           git push
           ```
 
-          If the lockfile change is intentional, remove the `lockfile-churn-only` label and push or reopen the PR so this workflow sends it to the engineering review board.
+          If the lockfile change is intentional, remove the `lockfile-churn-only` label, then close and reopen the PR so this workflow sends it to the engineering review board.
           EOF
           gh pr comment "$PR" --body-file /tmp/lockfile-churn-body.md
           gh pr edit "$PR" --add-label lockfile-churn-only

@@ -5,12 +5,10 @@ import { addError } from 'markdownlint-rule-helpers'
 import { getFrontmatter } from '../helpers/utils'
 import type { RuleParams, RuleErrorCallback } from '@/content-linter/types'
 
-// Same two-strategy path resolution as isValidArticlePath in
-// frontmatter-landing-carousels.ts.
-function isValidGuidePath(guidePath: string, currentFilePath: string): boolean {
+// Journey guides render through getLinkData, which resolves hrefs only from the content root.
+function isValidGuidePath(guidePath: string): boolean {
   const ROOT = process.env.ROOT || '.'
 
-  // Strategy 1: Always try as an absolute path from content root first
   const contentDir = path.join(ROOT, 'content')
   const normalizedPath = guidePath.startsWith('/') ? guidePath.substring(1) : guidePath
 
@@ -21,28 +19,7 @@ function isValidGuidePath(guidePath: string, currentFilePath: string): boolean {
 
   // A directory with an index.md in it is a landing page.
   const indexPath = path.join(contentDir, normalizedPath, 'index.md')
-  if (fs.existsSync(indexPath) && fs.statSync(indexPath).isFile()) {
-    return true
-  }
-
-  // Strategy 2: Fall back to relative path from current file's directory
-  const currentDir = path.dirname(currentFilePath)
-
-  const relativePath = path.join(currentDir, `${normalizedPath}.md`)
-  try {
-    if (fs.existsSync(relativePath) && fs.statSync(relativePath).isFile()) {
-      return true
-    }
-  } catch {
-    // Continue to next strategy
-  }
-
-  const relativeIndexPath = path.join(currentDir, normalizedPath, 'index.md')
-  try {
-    return fs.existsSync(relativeIndexPath) && fs.statSync(relativeIndexPath).isFile()
-  } catch {
-    return false
-  }
+  return fs.existsSync(indexPath) && fs.statSync(indexPath).isFile()
 }
 
 export const journeyTracksGuidePathExists = {
@@ -50,7 +27,7 @@ export const journeyTracksGuidePathExists = {
   description: 'Journey track guide paths must reference existing content files',
   tags: ['frontmatter', 'journey-tracks'],
   function: (params: RuleParams, onError: RuleErrorCallback) => {
-    // Using unknown for frontmatter as it's a dynamic YAML object with varying properties
+    // Frontmatter is a dynamic YAML object, so narrow it before reading journeyTracks.
     const fm: unknown = getFrontmatter(params.lines)
     if (!fm || typeof fm !== 'object' || !('journeyTracks' in fm)) return
     const fmObj = fm as Record<string, unknown>
@@ -74,7 +51,7 @@ export const journeyTracksGuidePathExists = {
           if (!guideObj || typeof guideObj !== 'object') continue
 
           if ('href' in guideObj && typeof guideObj.href === 'string') {
-            if (!isValidGuidePath(guideObj.href, params.name)) {
+            if (!isValidGuidePath(guideObj.href)) {
               addError(
                 onError,
                 journeyTracksLineNumber,

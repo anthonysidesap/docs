@@ -20,7 +20,7 @@ export async function getCommitSha(owner: string, repo: string, ref: string) {
   }
 }
 
-// based on https://docs.github.com/rest/reference/git#get-a-reference
+// https://docs.github.com/rest/reference/git#get-a-reference
 export async function hasMatchingRef(owner: string, repo: string, ref: string) {
   try {
     await github.git.getRef({
@@ -151,7 +151,6 @@ export async function createIssueComment(
   }
 }
 
-// The paths of files in the repo containing any of the given strings.
 export async function getPathsWithMatchingStrings(
   strArr: string[],
   org: string,
@@ -159,22 +158,32 @@ export async function getPathsWithMatchingStrings(
   { cache = true, forceDownload = false } = {},
 ) {
   const perPage = 100
+  // The search API returns at most 1000 results and fails on later pages.
+  const maxResults = 1000
+  const maxPage = Math.ceil(maxResults / perPage)
   const paths = new Set()
 
   for (const str of strArr) {
     try {
-      const q = `q=${str}+in:file+repo:${org}/${repo}`
+      // Octokit adds the q= parameter name itself.
+      const q = `${str}+in:file+repo:${org}/${repo}`
       let currentPage = 1
       let totalCount = 0
       let currentCount = 0
+      let pageCount = 0
 
       do {
         const data = await searchCode(q, perPage, currentPage, cache, forceDownload)
         data.items.map((el: { path: string }) => paths.add(el.path))
         totalCount = data.total_count
-        currentCount += data.items.length
+        pageCount = data.items.length
+        currentCount += pageCount
         currentPage++
-      } while (currentCount < totalCount)
+      } while (
+        pageCount > 0 &&
+        currentPage <= maxPage &&
+        currentCount < Math.min(totalCount, maxResults)
+      )
     } catch (err) {
       console.log(`error searching for ${str} in ${org}/${repo}`)
       throw err
@@ -233,7 +242,6 @@ async function searchCode(
   }
 }
 
-// Recursively gets the contents of a directory within a repo.
 export async function getDirectoryContents(
   owner: string,
   repo: string,

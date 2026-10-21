@@ -6,15 +6,15 @@ import { getFrontmatter } from '../helpers/utils'
 import type { RuleParams, RuleErrorCallback } from '@/content-linter/types'
 
 interface Frontmatter {
-  carousels?: Record<string, string[]>
+  carousels?: Record<string, unknown[]>
   layout?: string
   [key: string]: unknown
 }
 
+// Try content-root paths before paths relative to the current file.
 function isValidArticlePath(articlePath: string, currentFilePath: string): boolean {
   const ROOT = process.env.ROOT || '.'
 
-  // Strategy 1: Always try as an absolute path from content root first
   const contentDir = path.join(ROOT, 'content')
   const normalizedPath = articlePath.startsWith('/') ? articlePath.substring(1) : articlePath
 
@@ -29,7 +29,6 @@ function isValidArticlePath(articlePath: string, currentFilePath: string): boole
     return true
   }
 
-  // Strategy 2: Fall back to relative path from current file's directory
   const currentDir: string = path.dirname(currentFilePath)
 
   const relativePath: string = path.join(currentDir, `${normalizedPath}.md`)
@@ -38,7 +37,7 @@ function isValidArticlePath(articlePath: string, currentFilePath: string): boole
       return true
     }
   } catch {
-    // Continue to next strategy
+    // Fall through to the relative index lookup when the file check throws.
   }
 
   const relativeIndexPath: string = path.join(currentDir, normalizedPath, 'index.md')
@@ -81,7 +80,6 @@ export const frontmatterLandingCarousels = {
       )
     }
 
-    // Check each carousel for duplicates and invalid paths
     for (const [carouselKey, articles] of Object.entries(fm.carousels!)) {
       if (!Array.isArray(articles)) continue
 
@@ -90,6 +88,9 @@ export const frontmatterLandingCarousels = {
       const invalidPaths: string[] = []
 
       for (const item of articles) {
+        // GHD012 (frontmatter-schema) reports non-string entries.
+        if (typeof item !== 'string') continue
+
         if (seen.has(item)) {
           duplicates.push(item)
         } else {

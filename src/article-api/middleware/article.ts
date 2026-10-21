@@ -12,7 +12,7 @@ import {
 import { getArticleBody } from './article-body'
 import { getMetadata } from './article-pageinfo'
 import {
-  makeLanguageSurrogateKey,
+  makeContentSurrogateKeys,
   setFastlySurrogateKey,
 } from '@/frame/middleware/set-fastly-surrogate-key'
 import statsd from '@/observability/lib/statsd'
@@ -48,7 +48,7 @@ router.get(
   pageValidationMiddleware as RequestHandler,
   apiVersionValidationMiddleware as RequestHandler,
   catchMiddlewareError(async function (req: ExtendedRequestWithPageInfo, res: Response) {
-    const { meta, cacheInfo } = await getMetadata(req)
+    const { meta } = await getMetadata(req)
     let bodyContent
     try {
       bodyContent = await getArticleBody(req)
@@ -56,10 +56,11 @@ router.get(
       return res.status(403).json({ error: (error as Error).message })
     }
 
-    incrementArticleLookup(req, 'full', cacheInfo)
+    incrementArticleLookup(req, 'full')
     recordBodySize(req, bodyContent)
 
     defaultCacheControl(res)
+    setArticleSurrogateKeys(req, res)
     return res.json({
       meta,
       body: bodyContent,
@@ -102,12 +103,11 @@ router.get(
     recordBodySize(req, bodyContent)
 
     defaultCacheControl(res)
+    setArticleSurrogateKeys(req, res)
     return res.type('text/markdown').send(bodyContent)
   }),
 )
 
-// /api/article/meta sets a language surrogate key because /api URLs lack a language segment.
-// Fastly needs the key for staggered language purges.
 /**
  * Get metadata about an article.
  * @route GET /api/article/meta
@@ -143,28 +143,29 @@ router.get(
   pathValidationMiddleware as RequestHandler,
   pageValidationMiddleware as RequestHandler,
   catchMiddlewareError(async function pageInfo(req: ExtendedRequestWithPageInfo, res: Response) {
-    const { meta, cacheInfo } = await getMetadata(req)
+    const { meta } = await getMetadata(req)
 
-    incrementArticleLookup(req, 'meta', cacheInfo)
+    incrementArticleLookup(req, 'meta')
     defaultCacheControl(res)
-
-    setFastlySurrogateKey(
-      res,
-      makeLanguageSurrogateKey(req.pageinfo?.page?.languageCode || 'en'),
-      true,
-    )
+    setArticleSurrogateKeys(req, res)
     return res.json(meta)
   }),
 )
 
+// /api URLs lack a language segment, so every Article API route sets language and page keys.
+// The page key matches the key that deploy purges build from changed content files.
+function setArticleSurrogateKeys(req: ExtendedRequestWithPageInfo, res: Response) {
+  const keys = makeContentSurrogateKeys({
+    langCode: req.pageinfo.page?.languageCode || 'en',
+    relativePath: req.pageinfo.page?.relativePath,
+  })
+  setFastlySurrogateKey(res, keys.join(' '), true)
+}
+
 // Keep Datadog metric tags consistent across Article API endpoints.
 // Datadog tags max at 200 characters, so path and source tags are truncated.
 // See https://docs.datadoghq.com/getting_started/tagging/#define-tags
-function incrementArticleLookup(
-  req: ExtendedRequestWithPageInfo,
-  type: 'full' | 'body' | 'meta',
-  cacheInfo?: string,
-) {
+function incrementArticleLookup(req: ExtendedRequestWithPageInfo, type: 'full' | 'body' | 'meta') {
   const pathname = req.pageinfo.pathname
   const language = req.pageinfo.page?.languageCode || 'en'
 
@@ -189,9 +190,6 @@ function incrementArticleLookup(
     `type:${type}`,
     `source:${source}`.slice(0, 200),
   ]
-
-  // Full and metadata lookups include page-info cache status.
-  if (cacheInfo) tags.push(`cache:${cacheInfo}`)
 
   statsd.increment('api.article.lookup', 1, tags)
 }

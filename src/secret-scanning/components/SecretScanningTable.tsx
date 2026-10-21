@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { DataTable, Table } from '@primer/react/experimental'
-import { TextInput, ActionMenu, ActionList } from '@primer/react'
-import { Pagination, Button } from '@primer/react-brand'
+import { TextInput, ActionMenu, Pagination, Button } from '@primer/react-brand'
 import { debounce } from 'lodash-es'
 import { useTranslation } from '@/languages/components/useTranslation'
 import { sendEvent } from '@/events/components/events'
 import { EventType } from '@/events/types'
-import { sanitizeSearchQuery } from '@/search/lib/sanitize-search-query'
+import { sanitizeSecretScanningSearchQuery } from '@/search/lib/sanitize-search-query'
+import { onActionMenuItemKeyDownCapture } from '@/frame/components/lib/action-menu'
 import type { SecretScanningData } from '@/types'
+import styles from './SecretScanningTable.module.scss'
 
 const PAGE_SIZE = 25
 
@@ -77,7 +78,7 @@ export function SecretScanningTable({ data }: { data: SecretScanningData[] }) {
   useEffect(() => {
     debouncedTrackSearchRef.current = debounce((query: string) => {
       // Sanitize before analytics because users can paste real secrets into this support search.
-      trackInteraction('search', 'search', sanitizeSearchQuery(query))
+      trackInteraction('search', 'search', sanitizeSecretScanningSearchQuery(query))
     }, 500)
     return () => {
       debouncedTrackSearchRef.current?.flush()
@@ -156,7 +157,9 @@ export function SecretScanningTable({ data }: { data: SecretScanningData[] }) {
 
   // The Pagination component is 1-indexed.
   const pageCount = Math.ceil(sorted.length / PAGE_SIZE)
-  const pageData = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  // Clamp because a client-side version switch keeps currentPage while data shrinks.
+  const visiblePage = Math.min(currentPage, Math.max(pageCount, 1))
+  const pageData = sorted.slice((visiblePage - 1) * PAGE_SIZE, visiblePage * PAGE_SIZE)
 
   return (
     <div>
@@ -203,6 +206,7 @@ export function SecretScanningTable({ data }: { data: SecretScanningData[] }) {
           )}
         </div>
         <TextInput
+          fullWidth
           aria-label={t('search_aria_label')}
           placeholder={t('search_placeholder')}
           value={filters.search}
@@ -355,8 +359,10 @@ export function SecretScanningTable({ data }: { data: SecretScanningData[] }) {
         <Pagination
           aria-label={t('pagination_label')}
           pageCount={pageCount}
-          currentPage={currentPage}
-          onPageChange={(_e: React.MouseEvent, page: number) => {
+          currentPage={visiblePage}
+          onPageChange={(e: React.MouseEvent, page: number) => {
+            // Brand renders page links with a #N href, so block the hash change and history entry.
+            e.preventDefault()
             setCurrentPage(page)
             trackInteraction('paginate', 'page', String(page))
           }}
@@ -378,7 +384,7 @@ function BoolIcon({
   const text = value ? t('bool_yes') : t('bool_no')
   const fullLabel = label ? `${label}: ${text}` : text
   return (
-    <span aria-label={fullLabel} title={fullLabel}>
+    <span role="img" aria-label={fullLabel}>
       {value ? '✓' : '✗'}
     </span>
   )
@@ -394,21 +400,31 @@ function FilterDropdown({
   onChange: (v: 'all' | 'yes' | 'no') => void
 }) {
   const { t } = useTranslation('secret_scanning')
+  const selectedLabel =
+    value === 'all' ? t('filter_all') : value === 'yes' ? t('filter_yes') : t('filter_no')
   return (
-    <ActionMenu>
-      <ActionMenu.Button size="small">
-        {label}:{' '}
-        {value === 'all' ? t('filter_all') : value === 'yes' ? t('filter_yes') : t('filter_no')}
-      </ActionMenu.Button>
-      <ActionMenu.Overlay>
-        <ActionList selectionVariant="single">
+    <div className={styles.filterDropdown}>
+      <ActionMenu
+        selectionVariant="single"
+        size="small"
+        onSelect={(selectedValue) => onChange(selectedValue as 'all' | 'yes' | 'no')}
+      >
+        <ActionMenu.Button size="small">
+          {label}: {selectedLabel}
+        </ActionMenu.Button>
+        <ActionMenu.Overlay aria-label={label}>
           {(['all', 'yes', 'no'] as const).map((opt) => (
-            <ActionList.Item key={opt} selected={value === opt} onSelect={() => onChange(opt)}>
+            <ActionMenu.Item
+              key={opt}
+              value={opt}
+              selected={value === opt}
+              onKeyDownCapture={onActionMenuItemKeyDownCapture}
+            >
               {opt === 'all' ? t('filter_all') : opt === 'yes' ? t('filter_yes') : t('filter_no')}
-            </ActionList.Item>
+            </ActionMenu.Item>
           ))}
-        </ActionList>
-      </ActionMenu.Overlay>
-    </ActionMenu>
+        </ActionMenu.Overlay>
+      </ActionMenu>
+    </div>
   )
 }

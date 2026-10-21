@@ -730,6 +730,24 @@
         "access": "write"
       },
       {
+        "category": "copilot",
+        "slug": "get-model-policies-for-an-organization",
+        "subcategory": "copilot-model-policy-management",
+        "verb": "get",
+        "requestPath": "/orgs/{org}/copilot/model-policies",
+        "additional-permissions": false,
+        "access": "write"
+      },
+      {
+        "category": "copilot",
+        "slug": "update-model-policies-for-an-organization",
+        "subcategory": "copilot-model-policy-management",
+        "verb": "patch",
+        "requestPath": "/orgs/{org}/copilot/model-policies",
+        "additional-permissions": false,
+        "access": "write"
+      },
+      {
         "category": "orgs",
         "slug": "list-saml-sso-authorizations-for-an-organization",
         "subcategory": "orgs",
@@ -1880,6 +1898,30 @@
         "requestPath": "/users/{username}/events/orgs/{org}",
         "additional-permissions": false,
         "access": "read"
+      }
+    ]
+  },
+  "organization_external_properties_for_repos": {
+    "title": "External custom properties for repositories",
+    "displayTitle": "Organization permissions for \"External custom properties for repositories\"",
+    "permissions": [
+      {
+        "category": "orgs",
+        "slug": "get-registered-app-installations-for-external-custom-properties",
+        "subcategory": "custom-properties",
+        "verb": "get",
+        "requestPath": "/orgs/{org}/properties/installations",
+        "additional-permissions": false,
+        "access": "admin"
+      },
+      {
+        "category": "orgs",
+        "slug": "register-an-app-installation-for-external-custom-properties",
+        "subcategory": "custom-properties",
+        "verb": "post",
+        "requestPath": "/orgs/{org}/properties/installations",
+        "additional-permissions": false,
+        "access": "admin"
       }
     ]
   },
@@ -6994,6 +7036,15 @@
         "access": "read"
       },
       {
+        "category": "repos",
+        "slug": "create-a-fork",
+        "subcategory": "forks",
+        "verb": "post",
+        "requestPath": "/repos/{owner}/{repo}/forks",
+        "additional-permissions": true,
+        "access": "read"
+      },
+      {
         "category": "git",
         "slug": "create-a-blob",
         "subcategory": "blobs",
@@ -9383,6 +9434,15 @@
       },
       {
         "category": "pulls",
+        "slug": "rerequest-reviewers-for-a-pull-request",
+        "subcategory": "review-requests",
+        "verb": "post",
+        "requestPath": "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers/rerequest",
+        "additional-permissions": false,
+        "access": "write"
+      },
+      {
+        "category": "pulls",
         "slug": "list-reviews-for-a-pull-request",
         "subcategory": "reviews",
         "verb": "get",
@@ -9524,6 +9584,15 @@
       },
       {
         "category": "repos",
+        "slug": "create-a-fork",
+        "subcategory": "forks",
+        "verb": "post",
+        "requestPath": "/repos/{owner}/{repo}/forks",
+        "additional-permissions": true,
+        "access": "write"
+      },
+      {
+        "category": "repos",
         "slug": "create-a-repository-using-a-template",
         "subcategory": "repos",
         "verb": "post",
@@ -9539,6 +9608,21 @@
         "requestPath": "/user/repos",
         "additional-permissions": true,
         "access": "write"
+      }
+    ]
+  },
+  "repository_license_policy": {
+    "title": "Repository license policy",
+    "displayTitle": "Repository permissions for \"Repository license policy\"",
+    "permissions": [
+      {
+        "category": "dependency-graph",
+        "slug": "check-license-compliance-for-packages",
+        "subcategory": "license-compliance",
+        "verb": "post",
+        "requestPath": "/repos/{owner}/{repo}/license-compliance/package-checks",
+        "additional-permissions": false,
+        "access": "read"
       }
     ]
   },

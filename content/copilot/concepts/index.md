@@ -5,12 +5,10 @@ intro: Learn the core concepts that you'll need to understand {% data variables.
 versions:
   feature: copilot
 children:
-  - /completions
-  - /chat
-  - /agents
-  - /prompting
-  - /context
-  - /tools
+  - /copilot-surfaces
+  - /agent-capabilities
+  - /prompting-and-context
+  - /customizations
   - /models
   - /billing-and-usage
   - /security-governance-and-network-settings

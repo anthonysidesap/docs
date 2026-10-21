@@ -13,7 +13,7 @@ docsTeamMetrics:
   - copilot-cli
 ---
 
-The Model Context Protocol (MCP) is an open standard that defines how applications share context with large language models (LLMs). You can connect MCP servers to {% data variables.copilot.copilot_cli %} to give {% data variables.product.prodname_copilot_short %} access to external tools, data sources, and services. For an overview of MCP, see [AUTOTITLE](/copilot/concepts/context/mcp).
+The Model Context Protocol (MCP) is an open standard that defines how applications share context with large language models (LLMs). You can connect MCP servers to {% data variables.copilot.copilot_cli %} to give {% data variables.product.prodname_copilot_short %} access to external tools, data sources, and services. For an overview of MCP, see [AUTOTITLE](/copilot/concepts/customizations/mcp).
 
 ## Adding an MCP server
 
@@ -179,7 +179,7 @@ The same server can also be configured with the bare top-level format:
 ```
 
 > [!NOTE]
-> Project-level MCP servers are loaded only after you confirm folder trust on first launch. They are silently skipped in untrusted directories. For more information on folder trust, see [AUTOTITLE](/copilot/concepts/agents/copilot-cli/about-copilot-cli#trusted-directories).
+> Project-level MCP servers are loaded only after you confirm folder trust on first launch. They are silently skipped in untrusted directories. For more information on folder trust, see [AUTOTITLE](/copilot/concepts/copilot-surfaces/copilot-cli#trusted-directories).
 
 In prompt mode (`copilot -p`), project-level MCP servers are loaded automatically if the current directory is already trusted. If the directory is not trusted, project-level MCP servers are skipped by default. To load them anyway, set the `GITHUB_COPILOT_PROMPT_MODE_WORKSPACE_MCP` environment variable to `true`, since prompt mode cannot show an interactive trust prompt. For more information, see [AUTOTITLE](/copilot/reference/copilot-cli-reference/cli-command-reference#environment-variables).
 
@@ -204,6 +204,13 @@ If your organization has configured a custom MCP registry URL, `/mcp search` con
 1. Select a server to open its configuration form. The form is pre-populated with the server's configuration from the registry. Fill in any required fields, such as API keys or tokens.
 1. Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save. The server is added to your `mcp-config.json` and started immediately.
 
+
+## Using agent finder
+
+Agent finder searches a catalog of capabilities, including MCP servers, tools, agents, and skills. To make it available in the CLI:
+
+1. Download the [agent finder skill](https://github.com/ards-project/connectors/blob/main/skills/github-copilot/SKILL.md).
+1. Add the skill to your `~/.copilot/skills` directory. For skill directory structure and installation guidance, see [AUTOTITLE](/copilot/how-tos/copilot-cli/customize-copilot/add-skills).
 
 ## Managing MCP servers
 
@@ -271,6 +278,6 @@ Once you have added an MCP server, {% data variables.product.prodname_copilot_sh
 
 ## Further reading
 
-* [AUTOTITLE](/copilot/concepts/context/mcp)
-* [AUTOTITLE](/copilot/how-tos/provide-context/use-mcp-in-your-ide/extend-copilot-chat-with-mcp)
+* [AUTOTITLE](/copilot/concepts/customizations/mcp)
+* [AUTOTITLE](/copilot/how-tos/copilot-in-your-ide/customize-copilot/extend-copilot-with-tools-and-context/extend-copilot-chat-with-mcp)
 * [AUTOTITLE](/copilot/how-tos/copilot-on-github/customize-copilot/configure-mcp-servers)

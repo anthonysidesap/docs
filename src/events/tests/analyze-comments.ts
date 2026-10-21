@@ -111,6 +111,16 @@ describe('analyzeComment', () => {
       expect(signals.includes('too-short')).toBeTruthy()
       expect(rating).toBeLessThan(1.0)
     }
+    {
+      const { signals } = await analyzeComment('ありがとうございます', 'ja')
+      expect(signals.includes('too-short')).toBeTruthy()
+      expect(signals.includes('single-word')).toBeFalsy()
+    }
+    {
+      const { signals } = await analyzeComment('www.example.com/some/path 谢谢', 'zh')
+      expect(signals.includes('too-short')).toBeTruthy()
+      expect(signals.includes('single-word')).toBeFalsy()
+    }
 
     {
       const { signals } = await analyzeComment('A\nB\nC\nD')
@@ -119,6 +129,22 @@ describe('analyzeComment', () => {
     {
       const { signals } = await analyzeComment('One two three four ')
       expect(signals.includes('too-short')).toBeFalsy()
+    }
+    {
+      const { signals, rating } = await analyzeComment(
+        'このページの説明が分かりにくいです。コード例を追加してください。',
+        'ja',
+      )
+      expect(signals.includes('too-short')).toBeFalsy()
+      expect(rating).toBe(1.0)
+    }
+    {
+      const { signals, rating } = await analyzeComment(
+        '这个页面的说明不太清楚，请添加更多的代码示例，谢谢。',
+        'zh',
+      )
+      expect(signals.includes('too-short')).toBeFalsy()
+      expect(rating).toBe(1.0)
     }
   })
 
@@ -144,7 +170,27 @@ describe('analyzeComment', () => {
       expect(signals.includes('single-word')).toBeFalsy()
     }
     {
+      const { signals, rating } = await analyzeComment('谢谢', 'zh')
+      expect(signals.includes('single-word')).toBeTruthy()
+      expect(rating).toBeLessThan(1.0)
+    }
+
+    {
       const { signals } = await analyzeComment('  one   two\tthree ')
+      expect(signals.includes('single-word')).toBeFalsy()
+    }
+    {
+      const { signals } = await analyzeComment(
+        'このページの説明が分かりにくいです。コード例を追加してください。',
+        'ja',
+      )
+      expect(signals.includes('single-word')).toBeFalsy()
+    }
+    {
+      const { signals } = await analyzeComment(
+        '这个页面的说明不太清楚，请添加更多的代码示例，谢谢。',
+        'zh',
+      )
       expect(signals.includes('single-word')).toBeFalsy()
     }
   })
@@ -156,7 +202,7 @@ describe('analyzeComment', () => {
       expect(rating).toBeLessThan(1.0)
     }
     {
-      // example of a false positive
+      // Short English text can trigger a not-language false positive.
       const { signals, rating } = await analyzeComment('english word')
       expect(signals.includes('not-language')).toBeTruthy()
       expect(rating).toBeLessThan(1.0)
@@ -166,7 +212,7 @@ describe('analyzeComment', () => {
       const { signals } = await analyzeComment('english words longer sentence this time')
       expect(signals.includes('not-language')).toBeFalsy()
     }
-    // Always allow English comments even when the page language is non-English
+    // Always allow English comments even when the page language is non-English.
     {
       const { signals } = await analyzeComment('english words longer sentence this time', 'fr')
       expect(signals.includes('not-language')).toBeFalsy()
@@ -178,7 +224,7 @@ describe('analyzeComment', () => {
   })
 
   test('cuss-words-likely', async () => {
-    // The "CK" makes the final word a mix or lower and upper case.
+    // The first word mixes lowercase and uppercase letters.
     const { signals, rating } = await analyzeComment('f*CK you'.replace('*', 'u'))
     expect(signals.includes('cuss-words-likely')).toBeTruthy()
     expect(rating).toBeLessThan(1.0)
@@ -206,6 +252,39 @@ describe('analyzeComment', () => {
       const { signals } = await analyzeComment('Great 👍')
       expect(signals.includes('mostly-emoji')).toBeFalsy()
     }
+    {
+      const { signals, rating } = await analyzeComment('5 stars ⭐⭐⭐⭐⭐')
+      expect(signals.includes('mostly-emoji')).toBeTruthy()
+      expect(rating).toBeLessThan(1.0)
+    }
+    {
+      const { signals, rating } = await analyzeComment('🇺🇸 🇨🇦')
+      expect(signals.includes('mostly-emoji')).toBeTruthy()
+      expect(rating).toBeLessThan(1.0)
+    }
+    {
+      const { signals, rating } = await analyzeComment('👍🏽 👍🏽')
+      expect(signals.includes('mostly-emoji')).toBeTruthy()
+      expect(rating).toBeLessThan(1.0)
+    }
+    {
+      const { signals, rating } = await analyzeComment('1️⃣ 2️⃣')
+      expect(signals.includes('mostly-emoji')).toBeTruthy()
+      expect(rating).toBeLessThan(1.0)
+    }
+  })
+
+  test('mostly-emoji ignores digits, # and *', async () => {
+    for (const comment of [
+      'GHES 3.14.2 vs 3.15.1',
+      'See #1234 and #5678',
+      'Version 3.14 broken on 3.15',
+      'Error 500 on 2024-01-01',
+      'Step *1* and *2*',
+    ]) {
+      const { signals } = await analyzeComment(comment)
+      expect(signals.includes('mostly-emoji')).toBeFalsy()
+    }
   })
 
   test('spammy-words', async () => {
@@ -224,7 +303,7 @@ describe('analyzeComment', () => {
       const { signals } = await analyzeComment('GitHub is great!')
       expect(signals.includes('spammy-words')).toBeFalsy()
     }
-    // No sub-string matches allowed
+    // Survey words must match whole tokens, not substrings.
     {
       const { signals } = await analyzeComment('MinecraftFacebook')
       expect(signals.includes('spammy-words')).toBeFalsy()
@@ -241,7 +320,7 @@ describe('analyzeComment', () => {
       expect(guessedLanguage).toBe('en')
     }
 
-    // False positives due to short text
+    // Short text can trigger language false positives.
     {
       const guessedLanguage = await analyzeComment('Hello')
       expect(guessedLanguage).not.toBe('en')

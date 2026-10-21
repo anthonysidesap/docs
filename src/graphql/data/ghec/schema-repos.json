@@ -1001,7 +1001,7 @@
         },
         {
           "name": "source",
-          "description": "<p>The source of the property. Choose<code>custom</code>or 'system'. Defaults to 'custom' if not specified.</p>",
+          "description": "<p>The source of the property. Choose <code>custom</code> or 'system'. Defaults to <code>custom</code> if not specified.</p>",
           "type": "String",
           "id": "string",
           "href": "/graphql/reference/other#scalar-string"
@@ -3641,6 +3641,7 @@
             },
             {
               "name": "orderBy",
+              "defaultValue": "{field: CREATED_AT, direction: ASC}",
               "description": "<p>Ordering options for deployments returned from the connection.</p>",
               "type": {
                 "name": "DeploymentOrder",
@@ -3818,6 +3819,7 @@
             },
             {
               "name": "orderBy",
+              "defaultValue": "{field: UPDATED_AT, direction: DESC}",
               "description": "<p>Ordering options for discussions returned from the connection.</p>",
               "type": {
                 "name": "DiscussionOrder",
@@ -3827,6 +3829,7 @@
             },
             {
               "name": "states",
+              "defaultValue": "[]",
               "description": "<p>A list of states to filter the discussions by.</p>",
               "type": {
                 "name": "[DiscussionState!]",
@@ -3906,6 +3909,7 @@
             },
             {
               "name": "names",
+              "defaultValue": "[]",
               "description": "<p>The names of the environments to be returned.</p>",
               "type": {
                 "name": "[String!]",
@@ -3915,6 +3919,7 @@
             },
             {
               "name": "orderBy",
+              "defaultValue": "{field: NAME, direction: ASC}",
               "description": "<p>Ordering options for the environments.</p>",
               "type": {
                 "name": "Environments",
@@ -4029,6 +4034,7 @@
             },
             {
               "name": "ownerAffiliations",
+              "defaultValue": "[OWNER, COLLABORATOR]",
               "description": "<p>Array of owner's affiliation options for repositories returned from the\nconnection. For example, OWNER will include only repositories that the\norganization or user being viewed owns.</p>",
               "type": {
                 "name": "[RepositoryAffiliation]",
@@ -4055,6 +4061,13 @@
               }
             }
           ]
+        },
+        {
+          "name": "fullDatabaseId",
+          "description": "<p>Identifies the primary key from the database as a BigInt.</p>",
+          "type": "BigInt",
+          "id": "bigint",
+          "href": "/graphql/reference/other#scalar-bigint"
         },
         {
           "name": "fundingLinks",
@@ -4287,6 +4300,7 @@
             },
             {
               "name": "orderBy",
+              "defaultValue": "{field: CREATED_AT, direction: ASC}",
               "description": "<p>Ordering options for issue fields returned from the connection.</p>",
               "type": {
                 "name": "IssueFieldOrder",
@@ -4384,6 +4398,7 @@
             },
             {
               "name": "orderBy",
+              "defaultValue": "{field: CREATED_AT, direction: ASC}",
               "description": "<p>Ordering options for issue types returned from the connection.</p>",
               "type": {
                 "name": "IssueTypeOrder",
@@ -4537,6 +4552,7 @@
             },
             {
               "name": "orderBy",
+              "defaultValue": "{field: CREATED_AT, direction: ASC}",
               "description": "<p>Ordering options for labels returned from the connection.</p>",
               "type": {
                 "name": "LabelOrder",
@@ -4929,6 +4945,7 @@
             },
             {
               "name": "orderBy",
+              "defaultValue": "{field: CREATED_AT, direction: DESC}",
               "description": "<p>Ordering of the returned packages.</p>",
               "type": {
                 "name": "PackageOrder",
@@ -5053,6 +5070,7 @@
             },
             {
               "name": "orderBy",
+              "defaultValue": "{field: POSITION, direction: ASC}",
               "description": "<p>Ordering options for the environments.</p>",
               "type": {
                 "name": "PinnedEnvironmentOrder",
@@ -5302,6 +5320,7 @@
             },
             {
               "name": "orderBy",
+              "defaultValue": "{field: NUMBER, direction: DESC}",
               "description": "<p>How to order the returned projects.</p>",
               "type": {
                 "name": "ProjectV2Order",
@@ -8058,6 +8077,7 @@
             },
             {
               "name": "ownerAffiliations",
+              "defaultValue": "[OWNER, COLLABORATOR]",
               "description": "<p>Array of owner's affiliation options for repositories returned from the\nconnection. For example, OWNER will include only repositories that the\norganization or user being viewed owns.</p>",
               "type": {
                 "name": "[RepositoryAffiliation]",
@@ -8645,6 +8665,7 @@
             },
             {
               "name": "ownerAffiliations",
+              "defaultValue": "[OWNER, COLLABORATOR]",
               "description": "<p>Array of owner's affiliation options for repositories returned from the\nconnection. For example, OWNER will include only repositories that the\norganization or user being viewed owns.</p>",
               "type": {
                 "name": "[RepositoryAffiliation]",
@@ -9383,7 +9404,7 @@
         },
         {
           "name": "CODE_COVERAGE",
-          "description": "<p>Enforce minimum line coverage thresholds on pull requests. When configured,\nuploaded coverage data must meet the specified criteria before changes can be merged.</p>"
+          "description": "<p>Enforce minimum line coverage thresholds on pull requests. This rule evaluates\nuploaded coverage data but does not wait for coverage uploads. To ensure\ncoverage is evaluated before merging, make each status check associated with a\ncoverage upload a required status check.</p>"
         },
         {
           "name": "CODE_QUALITY",
@@ -9407,7 +9428,7 @@
         },
         {
           "name": "COPILOT_CODE_REVIEW",
-          "description": "<p>Request Copilot code review for new pull requests automatically if the author\nhas access to Copilot code review and their premium requests quota has not\nreached the limit.</p>"
+          "description": "<p>Request Copilot code review for new pull requests automatically if the author\nhas access to Copilot code review and AI credits.</p>"
         },
         {
           "name": "CREATION",
@@ -9671,19 +9692,27 @@
       "values": [
         {
           "name": "NOT_RELEVANT",
-          "description": "<p>The suggested topic is not relevant to the repository.</p>"
+          "description": "<p>The suggested topic is not relevant to the repository.</p>",
+          "isDeprecated": true,
+          "deprecationReason": "<p>Suggested topics are no longer supported Removal on 2024-04-01 UTC.</p>"
         },
         {
           "name": "PERSONAL_PREFERENCE",
-          "description": "<p>The viewer does not like the suggested topic.</p>"
+          "description": "<p>The viewer does not like the suggested topic.</p>",
+          "isDeprecated": true,
+          "deprecationReason": "<p>Suggested topics are no longer supported Removal on 2024-04-01 UTC.</p>"
         },
         {
           "name": "TOO_GENERAL",
-          "description": "<p>The suggested topic is too general for the repository.</p>"
+          "description": "<p>The suggested topic is too general for the repository.</p>",
+          "isDeprecated": true,
+          "deprecationReason": "<p>Suggested topics are no longer supported Removal on 2024-04-01 UTC.</p>"
         },
         {
           "name": "TOO_SPECIFIC",
-          "description": "<p>The suggested topic is too specific for the repository (e.g. #ruby-on-rails-version-4-2-1).</p>"
+          "description": "<p>The suggested topic is too specific for the repository (e.g. #ruby-on-rails-version-4-2-1).</p>",
+          "isDeprecated": true,
+          "deprecationReason": "<p>Suggested topics are no longer supported Removal on 2024-04-01 UTC.</p>"
         }
       ],
       "category": "repos"
@@ -9990,7 +10019,7 @@
       "name": "CodeCoverageParametersInput",
       "id": "codecoverageparametersinput",
       "href": "/graphql/reference/repos#input-object-codecoverageparametersinput",
-      "description": "<p>Enforce minimum line coverage thresholds on pull requests. When configured,\nuploaded coverage data must meet the specified criteria before changes can be merged.</p>",
+      "description": "<p>Enforce minimum line coverage thresholds on pull requests. This rule evaluates\nuploaded coverage data but does not wait for coverage uploads. To ensure\ncoverage is evaluated before merging, make each status check associated with a\ncoverage upload a required status check.</p>",
       "inputFields": [
         {
           "name": "maxCoverageDrop",
@@ -10540,7 +10569,7 @@
         },
         {
           "name": "source",
-          "description": "<p>The source of the property. Choose<code>custom</code>or 'system'. Defaults to 'custom' if not specified.</p>",
+          "description": "<p>The source of the property. Choose <code>custom</code> or 'system'. Defaults to <code>custom</code> if not specified.</p>",
           "type": "String",
           "id": "string",
           "href": "/graphql/reference/other#scalar-string"

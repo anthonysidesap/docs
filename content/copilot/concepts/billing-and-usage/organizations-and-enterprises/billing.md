@@ -29,6 +29,14 @@ The cost of an interaction depends on two things: the model and the number of to
 
 Code completions and {% data variables.copilot.next_edit_suggestions %} are **not** billed in {% data variables.product.prodname_ai_credits_short %}. They remain unlimited for all paid plans.
 
+## How is {% data variables.product.prodname_github_app %} usage billed?
+
+A {% data variables.product.prodname_github_app %} installed on an organization can use an installation access token to make {% data variables.product.prodname_copilot_short %} requests without a user signing in. The organization that owns the installation pays for the usage, and the organization’s model policies and spending controls apply.
+
+You cannot create a budget for an individual app or installation. This authentication method does not require the **Allow use of Copilot CLI billed to the organization** policy, which applies to a different authentication path.
+
+For information about approving access, identifying app usage, and blocking an app, see [AUTOTITLE](/copilot/how-tos/administer-copilot/manage-for-organization/manage-app-copilot-access).
+
 ## How do {% data variables.product.prodname_ai_credits_short %} work?
 
 Each assigned {% data variables.product.prodname_copilot_short %} license comes with a monthly amount of **included {% data variables.product.prodname_ai_credits_short %}**:
@@ -87,7 +95,7 @@ For the best experience with usage-based billing, update your IDE, client, and {
 | Xcode (extension) | 0.50.0 |
 | {% data variables.copilot.copilot_cli_short %} | 1.0.48 |
 
-We recommend keeping your IDE, client, and {% data variables.product.prodname_copilot_short %} extensions on the latest available stable version. For information on configuring automatic updates, see [AUTOTITLE](/copilot/how-tos/configure-personal-settings/configure-in-ide). To update {% data variables.copilot.copilot_cli_short %}, see [AUTOTITLE](/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli).
+We recommend keeping your IDE, client, and {% data variables.product.prodname_copilot_short %} extensions on the latest available stable version. For information on configuring automatic updates, see [AUTOTITLE](/copilot/how-tos/copilot-in-your-ide/set-up-copilot/configure-in-ide). To update {% data variables.copilot.copilot_cli_short %}, see [AUTOTITLE](/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli).
 
 ## Next steps
 
