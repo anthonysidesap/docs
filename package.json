@@ -179,7 +179,7 @@
     "@opentelemetry/core": "^2.8.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.220.0",
     "@opentelemetry/instrumentation-express": "^0.63.0",
-    "@opentelemetry/instrumentation-http": "^0.220.0",
+    "@opentelemetry/instrumentation-http": "^0.222.0",
     "@opentelemetry/instrumentation-undici": "^0.25.0",
     "@opentelemetry/sdk-node": "^0.220.0",
     "@primer/behaviors": "^1.10.2",
